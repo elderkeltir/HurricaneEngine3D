@@ -8,5 +8,5 @@
 	path = extern/meshoptimizer
 	url = https://github.com/zeux/meshoptimizer
 [submodule "exrtern/volk"]
-	path = exrtern/volk
+	path = extern/volk
 	url = https://github.com/zeux/volk
