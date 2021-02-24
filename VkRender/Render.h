@@ -5,4 +5,4 @@
 #define VKRENDER_EXPORTS __declspec(dllimport)
 #endif
 
-int VKRENDER_EXPORTS main_render(const char* path);
+int main_render(const char* path);

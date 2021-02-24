@@ -3,9 +3,8 @@
 #include <vector>
 #include <algorithm>
 
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <volk.h>
+#include <GLFW/glfw3.h>
 
 #include "meshoptimizer.h"
 #pragma warning(disable : 4996)
@@ -56,6 +55,12 @@ VkInstance createInstance()
 		VK_KHR_SURFACE_EXTENSION_NAME,
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#endif
+#ifdef VK_USE_PLATFORM_XCB_KHR
+        VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+#endif
+#ifdef VK_USE_PLATFORM_METAL_EXT
+        VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 #endif
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 	};
@@ -206,17 +211,10 @@ VkDevice createDevice(VkInstance instance, VkPhysicalDevice physicalDevice, uint
 
 VkSurfaceKHR createSurface(VkInstance instance, GLFWwindow* window)
 {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	VkWin32SurfaceCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	createInfo.hinstance = GetModuleHandle(0);
-	createInfo.hwnd = glfwGetWin32Window(window);
+	VkSurfaceKHR surface;
+    VK_CHECK(glfwCreateWindowSurface(instance, window, NULL, &surface));
 
-	VkSurfaceKHR surface = 0;
-	VK_CHECK(vkCreateWin32SurfaceKHR(instance, &createInfo, 0, &surface));
 	return surface;
-#else
-#error Unsupported platform
-#endif
 }
 
 VkFormat getSwapchainFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
@@ -359,7 +357,7 @@ VkImageView createImageView(VkDevice device, VkImage image, VkFormat format)
 VkShaderModule loadShader(VkDevice device, const char* path)
 {
 	FILE* file = 0;
-	fopen_s(&file, path, "rb");
+	file = fopen(path, "rb");
 	assert(file);
 
 	fseek(file, 0, SEEK_END);
@@ -718,7 +716,7 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 	vkDestroyBuffer(device, buffer.buffer, 0);
 }
 
-int VKRENDER_EXPORTS main_render(const char* path)
+int main_render(const char* path)
 {
 	int rc = glfwInit();
 	assert(rc);
@@ -747,6 +745,7 @@ int VKRENDER_EXPORTS main_render(const char* path)
 
 	volkLoadDevice(device);
 
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(1024, 768, "niagara", 0, 0);
 	assert(window);
 
@@ -774,10 +773,10 @@ int VKRENDER_EXPORTS main_render(const char* path)
 	VkRenderPass renderPass = createRenderPass(device, swapchainFormat);
 	assert(renderPass);
 
-	VkShaderModule triangleVS = loadShader(device, "../VkRender/shaders/triangle.vert.spv");
+	VkShaderModule triangleVS = loadShader(device, "VkRender/shaders/triangle.vert.spv");
 	assert(triangleVS);
 
-	VkShaderModule triangleFS = loadShader(device, "../VkRender/shaders/triangle.frag.spv");
+	VkShaderModule triangleFS = loadShader(device, "VkRender/shaders/triangle.frag.spv");
 	assert(triangleFS);
 
 	// TODO: this is critical for performance!
