@@ -750,7 +750,7 @@ int main_render(const char* path)
 	volkLoadDevice(device);
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(1024, 768, "niagara", 0, 0);
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "VkRender", 0, 0);
 	assert(window);
 
 	VkSurfaceKHR surface = createSurface(instance, window);
