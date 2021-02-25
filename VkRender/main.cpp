@@ -5,8 +5,6 @@
 
 #include "Render.h"
 
-#define _DEBUG
-
 #define VK_CHECK(call) \
 	do { \
 		VkResult result_ = call; \

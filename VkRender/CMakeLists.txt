@@ -14,11 +14,6 @@ if (APPLE)
     add_definitions(-DVK_USE_PLATFORM_METAL_KHR)
 endif (APPLE)
 
-
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
@@ -50,9 +45,10 @@ add_executable(${PROJECT_NAME} main.cpp Render.cpp
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vfetchoptimizer.cpp
 )
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/../extern/glfw/build/src/libglfw3.a)
 target_link_libraries(${PROJECT_NAME} dl)
 target_link_libraries(${PROJECT_NAME} pthread)
-target_link_libraries(${PROJECT_NAME} /home/ami/Projects/HurricaneEngine3D/extern/glfw/build/src/libglfw3.a) #${PROJECT_SOURCE_DIR}/../extern/glfw/build/src/
+
 
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
