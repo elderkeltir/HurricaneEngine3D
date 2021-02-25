@@ -61,6 +61,7 @@ VkInstance createInstance()
 #endif
 #ifdef VK_USE_PLATFORM_METAL_EXT
         VK_EXT_METAL_SURFACE_EXTENSION_NAME,
+		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 #endif
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 	};
@@ -193,6 +194,9 @@ VkDevice createDevice(VkInstance instance, VkPhysicalDevice physicalDevice, uint
 	const char* extensions[] =
 	{
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	#ifdef VK_USE_PLATFORM_METAL_EXT
+		VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+	#endif
 		//VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 1:35
 	};
 
@@ -773,10 +777,23 @@ int main_render(const char* path)
 	VkRenderPass renderPass = createRenderPass(device, swapchainFormat);
 	assert(renderPass);
 
-	VkShaderModule triangleVS = loadShader(device, "VkRender/shaders/triangle.vert.spv");
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+	char vert_shader[] = "../VkRender/shaders/triangle.vert.spv";
+	char frag_shader[] = "../VkRender/shaders/triangle.frag.spv";
+#endif
+#ifdef VK_USE_PLATFORM_XCB_KHR
+    char vert_shader[] = "VkRender/shaders/triangle.vert.spv";
+	char frag_shader[] = "VkRender/shaders/triangle.frag.spv";
+#endif
+#ifdef VK_USE_PLATFORM_METAL_EXT
+    char vert_shader[] = "../shaders/triangle.vert.spv";
+	char frag_shader[] = "../shaders/triangle.frag.spv";
+#endif
+
+	VkShaderModule triangleVS = loadShader(device, vert_shader);
 	assert(triangleVS);
 
-	VkShaderModule triangleFS = loadShader(device, "VkRender/shaders/triangle.frag.spv");
+	VkShaderModule triangleFS = loadShader(device, frag_shader);
 	assert(triangleFS);
 
 	// TODO: this is critical for performance!

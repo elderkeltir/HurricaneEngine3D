@@ -3,20 +3,28 @@
 // #include <assert.h>
 // #include <cstdio>
 
-#include "Render.h"
+ #include "Render.h"
 
-#define VK_CHECK(call) \
-	do { \
-		VkResult result_ = call; \
-		assert(result_ == VK_SUCCESS); \
-	} while (0)
+// #define VK_CHECK(call) \
+// 	do { \
+// 		VkResult result_ = call; \
+// 		assert(result_ == VK_SUCCESS); \
+// 	} while (0)
 
-#ifndef ARRAYSIZE
-#define ARRAYSIZE(array) (sizeof(array) / sizeof((array)[0]))
-#endif
+// #ifndef ARRAYSIZE
+// #define ARRAYSIZE(array) (sizeof(array) / sizeof((array)[0]))
+// #endif
 
 int main(){
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+	main_render("../extern/meshoptimizer/demo/pirate.obj");
+#endif
+#ifdef VK_USE_PLATFORM_XCB_KHR
     main_render("extern/meshoptimizer/demo/pirate.obj");
+#endif
+#ifdef VK_USE_PLATFORM_METAL_EXT
+    main_render("../../extern/meshoptimizer/demo/pirate.obj");
+#endif
 }
 
 // VkInstance createInstance()

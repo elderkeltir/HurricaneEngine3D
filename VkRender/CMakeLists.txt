@@ -6,13 +6,14 @@ if (WIN32)
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
 endif (WIN32)
 
-if (UNIX)
-    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
-endif (UNIX)
+
 
 if (APPLE)
-    add_definitions(-DVK_USE_PLATFORM_METAL_KHR)
-endif (APPLE)
+    add_definitions(-DVK_USE_PLATFORM_METAL_EXT)
+    add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
+elseif (UNIX)
+    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+endif ()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -26,7 +27,8 @@ include_directories(${PROJECT_SOURCE_DIR}/../extern/volk)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/glfw/include)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src)
 
-add_executable(${PROJECT_NAME} main.cpp Render.cpp
+add_executable(${PROJECT_NAME} main.cpp 
+    Render.cpp
     ${PROJECT_SOURCE_DIR}/../extern/volk/volk.c
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/allocator.cpp
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/clusterizer.cpp
@@ -46,8 +48,17 @@ add_executable(${PROJECT_NAME} main.cpp Render.cpp
 )
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/../extern/glfw/build/src/libglfw3.a)
-target_link_libraries(${PROJECT_NAME} dl)
-target_link_libraries(${PROJECT_NAME} pthread)
+
+if (APPLE)
+    target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
+    target_link_libraries(${PROJECT_NAME} "-framework OpenGL")
+    target_link_libraries(${PROJECT_NAME} "-framework IOKit")
+    target_link_libraries(${PROJECT_NAME} "-framework CoreVideo")
+elseif (UNIX)
+    target_link_libraries(${PROJECT_NAME} dl)
+    target_link_libraries(${PROJECT_NAME} pthread)
+endif ()
+
 
 
 
