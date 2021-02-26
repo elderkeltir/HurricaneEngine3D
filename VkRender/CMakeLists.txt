@@ -23,9 +23,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../extern/volk)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/glfw/include)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src)
 
-add_library(${PROJECT_NAME} SHARED main.cpp
-#add_executable(${PROJECT_NAME} main.cpp 
-    Render.cpp
+add_library(${PROJECT_NAME} SHARED Render.cpp
     ${PROJECT_SOURCE_DIR}/../extern/volk/volk.c
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/allocator.cpp
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/clusterizer.cpp
