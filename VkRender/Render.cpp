@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
+#include <string>
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -722,6 +724,8 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 
 int main_render(const char* path)
 {
+	std::filesystem::path exe_path = std::filesystem::path(path);
+
 	int rc = glfwInit();
 	assert(rc);
 
@@ -777,23 +781,27 @@ int main_render(const char* path)
 	VkRenderPass renderPass = createRenderPass(device, swapchainFormat);
 	assert(renderPass);
 
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-	char vert_shader[] = "../VkRender/shaders/triangle.vert.spv";
-	char frag_shader[] = "../VkRender/shaders/triangle.frag.spv";
-#endif
-#ifdef VK_USE_PLATFORM_XCB_KHR
-    char vert_shader[] = "VkRender/shaders/triangle.vert.spv";
-	char frag_shader[] = "VkRender/shaders/triangle.frag.spv";
-#endif
-#ifdef VK_USE_PLATFORM_METAL_EXT
-    char vert_shader[] = "../shaders/triangle.vert.spv";
-	char frag_shader[] = "../shaders/triangle.frag.spv";
-#endif
+// #ifdef VK_USE_PLATFORM_WIN32_KHR
+// 	char vert_shader[] = "../VkRender/shaders/triangle.vert.spv";
+// 	char frag_shader[] = "../VkRender/shaders/triangle.frag.spv";
+// #endif
+// #ifdef VK_USE_PLATFORM_XCB_KHR
+//     char vert_shader[] = "VkRender/shaders/triangle.vert.spv";
+// 	char frag_shader[] = "VkRender/shaders/triangle.frag.spv";
+// #endif
+// #ifdef VK_USE_PLATFORM_METAL_EXT
+//     char vert_shader[] = "../shaders/triangle.vert.spv";
+// 	char frag_shader[] = "../shaders/triangle.frag.spv";
+// #endif
 
-	VkShaderModule triangleVS = loadShader(device, vert_shader);
+    std::string vert_shader_path = exe_path.parent_path().parent_path().string() + "/VkRender/shaders/triangle.vert.spv";
+	std::string frag_shader_path = exe_path.parent_path().parent_path().string() + "/VkRender/shaders/triangle.frag.spv";
+	printf("vert_shader_path = %s", vert_shader_path.c_str());
+	printf("frag_shader_path = %s", frag_shader_path.c_str());
+	VkShaderModule triangleVS = loadShader(device, vert_shader_path.c_str());
 	assert(triangleVS);
 
-	VkShaderModule triangleFS = loadShader(device, frag_shader);
+	VkShaderModule triangleFS = loadShader(device, frag_shader_path.c_str());
 	assert(triangleFS);
 
 	// TODO: this is critical for performance!
@@ -822,7 +830,8 @@ int main_render(const char* path)
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
-	Mesh mesh = parseObj(path);
+	std::string obj_path = exe_path.parent_path().parent_path().string() + "/extern/meshoptimizer/demo/pirate.obj";
+	Mesh mesh = parseObj(obj_path.c_str());
 
 
 	Buffer vb = {};

@@ -4,11 +4,7 @@ project(VkRender)
 
 if (WIN32)
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
-endif (WIN32)
-
-
-
-if (APPLE)
+elseif (APPLE)
     add_definitions(-DVK_USE_PLATFORM_METAL_EXT)
     add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
 elseif (UNIX)
@@ -27,7 +23,8 @@ include_directories(${PROJECT_SOURCE_DIR}/../extern/volk)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/glfw/include)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src)
 
-add_executable(${PROJECT_NAME} main.cpp 
+add_library(${PROJECT_NAME} SHARED main.cpp
+#add_executable(${PROJECT_NAME} main.cpp 
     Render.cpp
     ${PROJECT_SOURCE_DIR}/../extern/volk/volk.c
     ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/allocator.cpp
@@ -62,5 +59,5 @@ endif ()
 
 
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-install(FILES main.cpp DESTINATION src)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
+#install(FILES main.cpp DESTINATION src)
