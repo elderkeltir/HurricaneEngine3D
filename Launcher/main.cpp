@@ -7,6 +7,7 @@
 #include <unistd.h>
 #endif
 #ifdef APPLE
+#include <mach-o/dyld.h>
 #endif
 
 #ifndef MAX_PATH
@@ -40,7 +41,7 @@ std::filesystem::path get_exe_path(){
 	char path[MAX_PATH];
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) == 0){
-		exe_path = std::filesystem::path(path)
+		exe_path = std::filesystem::path(path);
 	}
 #endif
 
