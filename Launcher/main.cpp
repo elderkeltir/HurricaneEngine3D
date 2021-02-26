@@ -42,6 +42,7 @@ std::filesystem::path get_exe_path(){
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) == 0){
 		exe_path = std::filesystem::path(path);
+        exe_path = exe_path.parent_path();
 	}
 #endif
 
