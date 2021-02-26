@@ -20,7 +20,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../VkRender)
 
 add_executable(${PROJECT_NAME} main.cpp
 )
-add_subdirectory(${PROJECT_SOURCE_DIR}/../VkRender build)
+# add_subdirectory(${PROJECT_SOURCE_DIR}/../VkRender build)
 target_link_libraries(${PROJECT_NAME} VkRender)
 #target_link_libraries(${PROJECT_NAME} PxPhys)
 
@@ -28,7 +28,7 @@ target_link_libraries(${PROJECT_NAME} VkRender)
 install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
 #install(FILES main.cpp DESTINATION src)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    INSTALL_RPATH "."
-    BUILD_WITH_INSTALL_RPATH 1
-)
+# set_target_properties(${PROJECT_NAME} PROPERTIES
+#     INSTALL_RPATH "."
+#     BUILD_WITH_INSTALL_RPATH 1
+# )
