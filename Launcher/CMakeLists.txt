@@ -24,8 +24,7 @@ add_executable(${PROJECT_NAME} main.cpp
 target_link_libraries(${PROJECT_NAME} VkRender)
 #target_link_libraries(${PROJECT_NAME} PxPhys)
 
-
-install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
+# install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
 #install(FILES main.cpp DESTINATION src)
 
 # set_target_properties(${PROJECT_NAME} PROPERTIES

@@ -56,6 +56,5 @@ endif ()
 
 
 
-
-install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
+# install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
 #install(FILES main.cpp DESTINATION src)

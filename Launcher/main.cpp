@@ -34,6 +34,7 @@ std::filesystem::path get_exe_path(){
     if (len != -1) {
       buff[len] = '\0';
       exe_path = std::filesystem::path(buff);
+	  exe_path = exe_path.parent_path();
     }
 #endif
 
