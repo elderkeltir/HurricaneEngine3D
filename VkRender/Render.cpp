@@ -15,14 +15,6 @@
 
 #include "Render.h"
 
-#ifdef VKRENDER_EXPORTS
-#undef VKRENDER_EXPORTS
-#define VKRENDER_EXPORTS __declspec(dllexport)
-#else
-#define VKRENDER_EXPORTS __declspec(dllimport)
-#endif
-
-
 #define VK_CHECK(call) \
 	do { \
 		VkResult result_ = call; \
@@ -33,11 +25,36 @@
 #define ARRAYSIZE(array) (sizeof(array) / sizeof((array)[0]))
 #endif
 
+void launchFallback(){
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "VkRender", 0, 0);
+	assert(window);
+
+	while (!glfwWindowShouldClose(window))
+	{
+		glfwPollEvents();
+		// TOOD: remove when we switch to the desktop computer
+		glfwWaitEvents();
+	}
+
+	glfwDestroyWindow(window);
+}
+
 VkInstance createInstance()
 {
-	// SHORTCUT: In real Vulkan applications you should probably check if 1.1 is available via vkEnumerateInstanceVersion
+	const uint32_t requiredApiVersion = VK_API_VERSION_1_1;
+	const uint32_t recommendedApiVersion = VK_API_VERSION_1_2;
+	uint32_t supportedApiVersion = 0;
+	VK_CHECK(vkEnumerateInstanceVersion(&supportedApiVersion));
+
+	const uint32_t apiVersion = (supportedApiVersion >= recommendedApiVersion) ? recommendedApiVersion : ((supportedApiVersion >= requiredApiVersion)  ? requiredApiVersion : 0u);
+
+	if (apiVersion == 0){
+		launchFallback();
+		assert(apiVersion);
+	}
+
 	VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-	appInfo.apiVersion = VK_API_VERSION_1_1;
+	appInfo.apiVersion = apiVersion;
 
 	VkInstanceCreateInfo createInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 	createInfo.pApplicationInfo = &appInfo;
@@ -52,24 +69,17 @@ VkInstance createInstance()
 	createInfo.enabledLayerCount = sizeof(debugLayers) / sizeof(debugLayers[0]);
 #endif
 
-	const char* extensions[] =
-	{
-		VK_KHR_SURFACE_EXTENSION_NAME,
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#endif
-#ifdef VK_USE_PLATFORM_XCB_KHR
-        VK_KHR_XCB_SURFACE_EXTENSION_NAME,
-#endif
-#ifdef VK_USE_PLATFORM_METAL_EXT
-        VK_EXT_METAL_SURFACE_EXTENSION_NAME,
-		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-#endif
-		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-	};
+	uint32_t glfwExtensionsNum = 0;
+	const char ** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsNum);
+	std::vector<const char*> extensions;
+	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-	createInfo.ppEnabledExtensionNames = extensions;
-	createInfo.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
+	for (size_t i = 0; i < glfwExtensionsNum; i++){
+		extensions.push_back(glfwExtensions[i]);
+	}
+
+	createInfo.ppEnabledExtensionNames = extensions.data();
+	createInfo.enabledExtensionCount = extensions.size();
 
 	VkInstance instance = 0;
 	VK_CHECK(vkCreateInstance(&createInfo, 0, &instance));
@@ -128,16 +138,12 @@ uint32_t getGraphicsFamilyIndex(VkPhysicalDevice physicalDevice)
 	return VK_QUEUE_FAMILY_IGNORED;
 }
 
-bool supportsPresentation(VkPhysicalDevice physicalDevice, uint32_t familyIndex)
+bool supportsPresentation(VkInstance instance, VkPhysicalDevice physicalDevice, uint32_t familyIndex)
 {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, familyIndex);
-#else
-	return true;
-#endif
+	return glfwGetPhysicalDevicePresentationSupport(instance, physicalDevice, familyIndex);
 }
 
-VkPhysicalDevice pickPhysicalDevice(VkPhysicalDevice* physicalDevices, uint32_t physicalDeviceCount)
+VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkPhysicalDevice* physicalDevices, uint32_t physicalDeviceCount)
 {
 	VkPhysicalDevice discrete = 0;
 	VkPhysicalDevice fallback = 0;
@@ -153,7 +159,7 @@ VkPhysicalDevice pickPhysicalDevice(VkPhysicalDevice* physicalDevices, uint32_t 
 		if (familyIndex == VK_QUEUE_FAMILY_IGNORED)
 			continue;
 
-		if (!supportsPresentation(physicalDevices[i], familyIndex))
+		if (!supportsPresentation(instance, physicalDevices[i], familyIndex))
 			continue;
 
 		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -742,7 +748,7 @@ int main_render(const char* path)
 	uint32_t physicalDeviceCount = sizeof(physicalDevices) / sizeof(physicalDevices[0]);
 	VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices));
 
-	VkPhysicalDevice physicalDevice = pickPhysicalDevice(physicalDevices, physicalDeviceCount);
+	VkPhysicalDevice physicalDevice = pickPhysicalDevice(instance, physicalDevices, physicalDeviceCount);
 	assert(physicalDevice);
 
 	uint32_t familyIndex = getGraphicsFamilyIndex(physicalDevice);
@@ -781,22 +787,9 @@ int main_render(const char* path)
 	VkRenderPass renderPass = createRenderPass(device, swapchainFormat);
 	assert(renderPass);
 
-// #ifdef VK_USE_PLATFORM_WIN32_KHR
-// 	char vert_shader[] = "../VkRender/shaders/triangle.vert.spv";
-// 	char frag_shader[] = "../VkRender/shaders/triangle.frag.spv";
-// #endif
-// #ifdef VK_USE_PLATFORM_XCB_KHR
-//     char vert_shader[] = "VkRender/shaders/triangle.vert.spv";
-// 	char frag_shader[] = "VkRender/shaders/triangle.frag.spv";
-// #endif
-// #ifdef VK_USE_PLATFORM_METAL_EXT
-//     char vert_shader[] = "../shaders/triangle.vert.spv";
-// 	char frag_shader[] = "../shaders/triangle.frag.spv";
-// #endif
-
     std::string vert_shader_path = root_path.string() + "/VkRender/shaders/triangle.vert.spv";
 	std::string frag_shader_path = root_path.string() + "/VkRender/shaders/triangle.frag.spv";
-	
+
 	VkShaderModule triangleVS = loadShader(device, vert_shader_path.c_str());
 	assert(triangleVS);
 

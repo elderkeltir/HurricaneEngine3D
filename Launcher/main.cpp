@@ -10,12 +10,14 @@
 #include <mach-o/dyld.h>
 #endif
 
+#include <filesystem>
+#include <string>
+
 #ifndef MAX_PATH
 #define MAX_PATH 256
 #endif
 
-#include <filesystem>
-#include <string>
+#define ROOT_FOLDER_NAME "HurricaneEngine3D"
 
 
 std::filesystem::path get_root_path(){
@@ -44,19 +46,16 @@ std::filesystem::path get_root_path(){
 		root_path = std::filesystem::path(path);
 	}
 #endif
-	std::string folder = root_path.filename();
-	while (folder != "HurricaneEngine3D"){
-	root_path = root_path.parent_path();
-	
-	folder = root_path.filename().string();
-}
+
+	while (root_path.filename().string() != ROOT_FOLDER_NAME){
+		root_path = root_path.parent_path();
+	}
+
 	return root_path;
 }
 
 int main(int argc, const char** argv) {
 	std::filesystem::path root_path = get_root_path();
-
-	//std::string obj_path = root_path.parent_path().parent_path().parent_path().string() + "\\extern\\meshoptimizer\\demo\\pirate.obj";
 
 	//PhysSDK p;
 	//p.Init();
