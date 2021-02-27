@@ -737,7 +737,7 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 int main_render(const char* path)
 {
 	common::timer _timer;
-	uint64_t cycles = 0u;
+	int cycles = 0u;
 	float elapsed = 0.f;
 
 	std::filesystem::path root_path = std::filesystem::path(path);
@@ -935,8 +935,8 @@ int main_render(const char* path)
 
 		VK_CHECK(vkDeviceWaitIdle(device));
 
-		// TOOD: remove when we switch to the desktop computer
-		glfwWaitEvents();
+		// uncomment to reduce presure on hardware
+		//glfwWaitEvents();
 	}
 
 	VK_CHECK(vkDeviceWaitIdle(device));
