@@ -18,13 +18,13 @@
 #include <string>
 
 
-std::filesystem::path get_exe_path(){
-	std::filesystem::path exe_path;
+std::filesystem::path get_root_path(){
+	std::filesystem::path root_path;
 
 #ifdef WIN32
 	wchar_t * exePath = new wchar_t[MAX_PATH];
 	GetModuleFileName(NULL, exePath, MAX_PATH);
-	exe_path = std::filesystem::path(exePath);
+	root_path = std::filesystem::path(exePath);
 
 #endif
 
@@ -33,8 +33,7 @@ std::filesystem::path get_exe_path(){
     ssize_t len = ::readlink("/proc/self/exe", buff, sizeof(buff)-1);
     if (len != -1) {
       buff[len] = '\0';
-      exe_path = std::filesystem::path(buff);
-	  exe_path = exe_path.parent_path();
+      root_path = std::filesystem::path(buff);
     }
 #endif
 
@@ -42,23 +41,27 @@ std::filesystem::path get_exe_path(){
 	char path[MAX_PATH];
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) == 0){
-		exe_path = std::filesystem::path(path);
-        exe_path = exe_path.parent_path();
+		root_path = std::filesystem::path(path);
 	}
 #endif
-
-return exe_path;
+	std::string folder = root_path.filename();
+	while (folder != "HurricaneEngine3D"){
+	root_path = root_path.parent_path();
+	
+	folder = root_path.filename().string();
+}
+	return root_path;
 }
 
 int main(int argc, const char** argv) {
-	std::filesystem::path exe_path = get_exe_path();
+	std::filesystem::path root_path = get_root_path();
 
-	//std::string obj_path = exe_path.parent_path().parent_path().parent_path().string() + "\\extern\\meshoptimizer\\demo\\pirate.obj";
+	//std::string obj_path = root_path.parent_path().parent_path().parent_path().string() + "\\extern\\meshoptimizer\\demo\\pirate.obj";
 
 	//PhysSDK p;
 	//p.Init();
 
-	main_render(exe_path.string().c_str());
+	main_render(root_path.string().c_str());
 
 	//p.Shutdown();
 }

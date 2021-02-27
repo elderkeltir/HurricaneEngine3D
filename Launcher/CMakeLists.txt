@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(Launcher)
 
+set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
+
 if (WIN32)
     add_definitions(-DWIN32)
 elseif (APPLE)
@@ -13,21 +15,13 @@ endif ()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/../VkRender)
-#include_directories(${PROJECT_SOURCE_DIR}/../PxPhys/)
+include_directories(${ROOT_FOLDER}/Common)
+include_directories(${ROOT_FOLDER}/VkRender)
 
 add_executable(${PROJECT_NAME} main.cpp
 )
-# add_subdirectory(${PROJECT_SOURCE_DIR}/../VkRender build)
+
 target_link_libraries(${PROJECT_NAME} VkRender)
-#target_link_libraries(${PROJECT_NAME} PxPhys)
-
-# install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
-#install(FILES main.cpp DESTINATION src)
-
-# set_target_properties(${PROJECT_NAME} PROPERTIES
-#     INSTALL_RPATH "."
-#     BUILD_WITH_INSTALL_RPATH 1
-# )

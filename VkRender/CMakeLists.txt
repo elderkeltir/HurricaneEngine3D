@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(VkRender)
 
+set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
+set(EXTERN_FOLDER ${ROOT_FOLDER}/extern)
+
 if (WIN32)
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
 elseif (APPLE)
@@ -14,35 +17,37 @@ endif ()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/../extern/volk)
-include_directories(${PROJECT_SOURCE_DIR}/../extern/glfw/include)
-include_directories(${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src)
+include_directories(${ROOT_FOLDER}/Common)
+include_directories(${EXTERN_FOLDER}/volk)
+include_directories(${EXTERN_FOLDER}/glfw/include)
+include_directories(${EXTERN_FOLDER}/meshoptimizer/src)
 
 add_library(${PROJECT_NAME} SHARED Render.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/volk/volk.c
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/allocator.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/clusterizer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/indexcodec.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/indexgenerator.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/overdrawanalyzer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/overdrawoptimizer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/simplifier.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/spatialorder.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/stripifier.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vcacheanalyzer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vcacheoptimizer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vertexcodec.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vertexfilter.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vfetchanalyzer.cpp
-    ${PROJECT_SOURCE_DIR}/../extern/meshoptimizer/src/vfetchoptimizer.cpp
+    ${EXTERN_FOLDER}/volk/volk.c
+    ${EXTERN_FOLDER}/meshoptimizer/src/allocator.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/clusterizer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/indexcodec.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/indexgenerator.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/overdrawanalyzer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/overdrawoptimizer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/simplifier.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/spatialorder.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/stripifier.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vcacheanalyzer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vcacheoptimizer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vertexcodec.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vertexfilter.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vfetchanalyzer.cpp
+    ${EXTERN_FOLDER}/meshoptimizer/src/vfetchoptimizer.cpp
 )
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/../extern/glfw/build/src/libglfw3.a)
+target_link_libraries(${PROJECT_NAME} ${EXTERN_FOLDER}/glfw/build/src/libglfw3.a)
 
 if (APPLE)
     target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
@@ -53,8 +58,3 @@ elseif (UNIX)
     target_link_libraries(${PROJECT_NAME} dl)
     target_link_libraries(${PROJECT_NAME} pthread)
 endif ()
-
-
-
-# install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
-#install(FILES main.cpp DESTINATION src)

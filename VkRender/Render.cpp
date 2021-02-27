@@ -724,7 +724,7 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 
 int main_render(const char* path)
 {
-	std::filesystem::path exe_path = std::filesystem::path(path);
+	std::filesystem::path root_path = std::filesystem::path(path);
 
 	int rc = glfwInit();
 	assert(rc);
@@ -794,10 +794,9 @@ int main_render(const char* path)
 // 	char frag_shader[] = "../shaders/triangle.frag.spv";
 // #endif
 
-    std::string vert_shader_path = exe_path.parent_path().parent_path().string() + "/VkRender/shaders/triangle.vert.spv";
-	std::string frag_shader_path = exe_path.parent_path().parent_path().string() + "/VkRender/shaders/triangle.frag.spv";
-	printf("vert_shader_path = %s", vert_shader_path.c_str());
-	printf("frag_shader_path = %s", frag_shader_path.c_str());
+    std::string vert_shader_path = root_path.string() + "/VkRender/shaders/triangle.vert.spv";
+	std::string frag_shader_path = root_path.string() + "/VkRender/shaders/triangle.frag.spv";
+	
 	VkShaderModule triangleVS = loadShader(device, vert_shader_path.c_str());
 	assert(triangleVS);
 
@@ -830,7 +829,7 @@ int main_render(const char* path)
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
-	std::string obj_path = exe_path.parent_path().parent_path().string() + "/extern/meshoptimizer/demo/pirate.obj";
+	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 	Mesh mesh = parseObj(obj_path.c_str());
 
 
