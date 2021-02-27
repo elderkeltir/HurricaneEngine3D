@@ -1,11 +1,18 @@
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
+#include <string>
 
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
+#include "timer.h"
+
 #include <volk.h>
+#include <GLFW/glfw3.h>
 
 #include "meshoptimizer.h"
 #pragma warning(disable : 4996)
@@ -13,14 +20,6 @@
 #include "../extern/fast_obj.h"
 
 #include "Render.h"
-
-#ifdef VKRENDER_EXPORTS
-#undef VKRENDER_EXPORTS
-#define VKRENDER_EXPORTS __declspec(dllexport)
-#else
-#define VKRENDER_EXPORTS __declspec(dllimport)
-#endif
-
 
 #define VK_CHECK(call) \
 	do { \
@@ -32,11 +31,36 @@
 #define ARRAYSIZE(array) (sizeof(array) / sizeof((array)[0]))
 #endif
 
+void launchFallback(){
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "VkRender", 0, 0);
+	assert(window);
+
+	while (!glfwWindowShouldClose(window))
+	{
+		glfwPollEvents();
+		// TOOD: remove when we switch to the desktop computer
+		glfwWaitEvents();
+	}
+
+	glfwDestroyWindow(window);
+}
+
 VkInstance createInstance()
 {
-	// SHORTCUT: In real Vulkan applications you should probably check if 1.1 is available via vkEnumerateInstanceVersion
+	const uint32_t requiredApiVersion = VK_API_VERSION_1_1;
+	const uint32_t recommendedApiVersion = VK_API_VERSION_1_2;
+	uint32_t supportedApiVersion = 0;
+	VK_CHECK(vkEnumerateInstanceVersion(&supportedApiVersion));
+
+	const uint32_t apiVersion = (supportedApiVersion >= recommendedApiVersion) ? recommendedApiVersion : ((supportedApiVersion >= requiredApiVersion)  ? requiredApiVersion : 0u);
+
+	if (apiVersion == 0){
+		launchFallback();
+		assert(apiVersion);
+	}
+
 	VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-	appInfo.apiVersion = VK_API_VERSION_1_1;
+	appInfo.apiVersion = apiVersion;
 
 	VkInstanceCreateInfo createInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 	createInfo.pApplicationInfo = &appInfo;
@@ -51,17 +75,17 @@ VkInstance createInstance()
 	createInfo.enabledLayerCount = sizeof(debugLayers) / sizeof(debugLayers[0]);
 #endif
 
-	const char* extensions[] =
-	{
-		VK_KHR_SURFACE_EXTENSION_NAME,
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#endif
-		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-	};
+	uint32_t glfwExtensionsNum = 0;
+	const char ** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsNum);
+	std::vector<const char*> extensions;
+	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-	createInfo.ppEnabledExtensionNames = extensions;
-	createInfo.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
+	for (size_t i = 0; i < glfwExtensionsNum; i++){
+		extensions.push_back(glfwExtensions[i]);
+	}
+
+	createInfo.ppEnabledExtensionNames = extensions.data();
+	createInfo.enabledExtensionCount = extensions.size();
 
 	VkInstance instance = 0;
 	VK_CHECK(vkCreateInstance(&createInfo, 0, &instance));
@@ -120,16 +144,12 @@ uint32_t getGraphicsFamilyIndex(VkPhysicalDevice physicalDevice)
 	return VK_QUEUE_FAMILY_IGNORED;
 }
 
-bool supportsPresentation(VkPhysicalDevice physicalDevice, uint32_t familyIndex)
+bool supportsPresentation(VkInstance instance, VkPhysicalDevice physicalDevice, uint32_t familyIndex)
 {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, familyIndex);
-#else
-	return true;
-#endif
+	return glfwGetPhysicalDevicePresentationSupport(instance, physicalDevice, familyIndex);
 }
 
-VkPhysicalDevice pickPhysicalDevice(VkPhysicalDevice* physicalDevices, uint32_t physicalDeviceCount)
+VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkPhysicalDevice* physicalDevices, uint32_t physicalDeviceCount)
 {
 	VkPhysicalDevice discrete = 0;
 	VkPhysicalDevice fallback = 0;
@@ -145,7 +165,7 @@ VkPhysicalDevice pickPhysicalDevice(VkPhysicalDevice* physicalDevices, uint32_t 
 		if (familyIndex == VK_QUEUE_FAMILY_IGNORED)
 			continue;
 
-		if (!supportsPresentation(physicalDevices[i], familyIndex))
+		if (!supportsPresentation(instance, physicalDevices[i], familyIndex))
 			continue;
 
 		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -188,6 +208,9 @@ VkDevice createDevice(VkInstance instance, VkPhysicalDevice physicalDevice, uint
 	const char* extensions[] =
 	{
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	#ifdef VK_USE_PLATFORM_METAL_EXT
+		VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+	#endif
 		//VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 1:35
 	};
 
@@ -206,17 +229,10 @@ VkDevice createDevice(VkInstance instance, VkPhysicalDevice physicalDevice, uint
 
 VkSurfaceKHR createSurface(VkInstance instance, GLFWwindow* window)
 {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	VkWin32SurfaceCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	createInfo.hinstance = GetModuleHandle(0);
-	createInfo.hwnd = glfwGetWin32Window(window);
+	VkSurfaceKHR surface;
+    VK_CHECK(glfwCreateWindowSurface(instance, window, NULL, &surface));
 
-	VkSurfaceKHR surface = 0;
-	VK_CHECK(vkCreateWin32SurfaceKHR(instance, &createInfo, 0, &surface));
 	return surface;
-#else
-#error Unsupported platform
-#endif
 }
 
 VkFormat getSwapchainFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
@@ -262,7 +278,7 @@ VkSwapchainKHR createSwapchain(VkDevice device, VkSurfaceKHR surface, VkSurfaceC
 	createInfo.pQueueFamilyIndices = &familyIndex;
 	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	createInfo.compositeAlpha = surfaceComposite;
-	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // use VK_PRESENT_MODE_FIFO_KHR for production, but hey, I want to benchmark fps :^)
 	createInfo.oldSwapchain = oldSwapchain;
 
 	VkSwapchainKHR swapchain = 0;
@@ -359,7 +375,7 @@ VkImageView createImageView(VkDevice device, VkImage image, VkFormat format)
 VkShaderModule loadShader(VkDevice device, const char* path)
 {
 	FILE* file = 0;
-	fopen_s(&file, path, "rb");
+	file = fopen(path, "rb");
 	assert(file);
 
 	fseek(file, 0, SEEK_END);
@@ -718,8 +734,14 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 	vkDestroyBuffer(device, buffer.buffer, 0);
 }
 
-int VKRENDER_EXPORTS main_render(const char* path)
+int main_render(const char* path)
 {
+	common::timer _timer;
+	int cycles = 0u;
+	float elapsed = 0.f;
+
+	std::filesystem::path root_path = std::filesystem::path(path);
+
 	int rc = glfwInit();
 	assert(rc);
 
@@ -736,7 +758,7 @@ int VKRENDER_EXPORTS main_render(const char* path)
 	uint32_t physicalDeviceCount = sizeof(physicalDevices) / sizeof(physicalDevices[0]);
 	VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices));
 
-	VkPhysicalDevice physicalDevice = pickPhysicalDevice(physicalDevices, physicalDeviceCount);
+	VkPhysicalDevice physicalDevice = pickPhysicalDevice(instance, physicalDevices, physicalDeviceCount);
 	assert(physicalDevice);
 
 	uint32_t familyIndex = getGraphicsFamilyIndex(physicalDevice);
@@ -747,7 +769,8 @@ int VKRENDER_EXPORTS main_render(const char* path)
 
 	volkLoadDevice(device);
 
-	GLFWwindow* window = glfwCreateWindow(1024, 768, "niagara", 0, 0);
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "VkRender", 0, 0);
 	assert(window);
 
 	VkSurfaceKHR surface = createSurface(instance, window);
@@ -774,10 +797,13 @@ int VKRENDER_EXPORTS main_render(const char* path)
 	VkRenderPass renderPass = createRenderPass(device, swapchainFormat);
 	assert(renderPass);
 
-	VkShaderModule triangleVS = loadShader(device, "../VkRender/shaders/triangle.vert.spv");
+    std::string vert_shader_path = root_path.string() + "/VkRender/shaders/triangle.vert.spv";
+	std::string frag_shader_path = root_path.string() + "/VkRender/shaders/triangle.frag.spv";
+
+	VkShaderModule triangleVS = loadShader(device, vert_shader_path.c_str());
 	assert(triangleVS);
 
-	VkShaderModule triangleFS = loadShader(device, "../VkRender/shaders/triangle.frag.spv");
+	VkShaderModule triangleFS = loadShader(device, frag_shader_path.c_str());
 	assert(triangleFS);
 
 	// TODO: this is critical for performance!
@@ -806,7 +832,8 @@ int VKRENDER_EXPORTS main_render(const char* path)
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
-	Mesh mesh = parseObj(path);
+	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
+	Mesh mesh = parseObj(obj_path.c_str());
 
 
 	Buffer vb = {};
@@ -823,6 +850,17 @@ int VKRENDER_EXPORTS main_render(const char* path)
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
+
+		cycles++;
+		float delta = _timer.elapsed_time();
+		elapsed+=delta;
+		_timer.restart();
+
+		if (elapsed > 1.0f){
+			printf("FPS: %d for 1 secs\n", cycles);
+			cycles = 0;
+			elapsed = 0.f;
+		}
 
 		resizeSwapchainIfNecessary(swapchain, physicalDevice, device, surface, familyIndex, swapchainFormat, renderPass);
 
@@ -897,8 +935,8 @@ int VKRENDER_EXPORTS main_render(const char* path)
 
 		VK_CHECK(vkDeviceWaitIdle(device));
 
-		// TOOD: remove when we switch to the desktop computer
-		glfwWaitEvents();
+		// uncomment to reduce presure on hardware
+		//glfwWaitEvents();
 	}
 
 	VK_CHECK(vkDeviceWaitIdle(device));
