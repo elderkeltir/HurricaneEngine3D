@@ -24,7 +24,7 @@ std::filesystem::path get_root_path(){
 	std::filesystem::path root_path;
 
 #ifdef WIN32
-	wchar_t * exePath = new wchar_t[MAX_PATH];
+	char * exePath = new char[MAX_PATH];
 	GetModuleFileName(NULL, exePath, MAX_PATH);
 	root_path = std::filesystem::path(exePath);
 

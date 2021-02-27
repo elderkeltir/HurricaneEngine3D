@@ -6,6 +6,7 @@ set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
 
 if (WIN32)
     add_definitions(-DWIN32)
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 elseif (APPLE)
     add_definitions(-DAPPLE)
 elseif (UNIX)
