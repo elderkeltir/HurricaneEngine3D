@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(VkRender)
 
+set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
+set(EXTERN_FOLDER ${ROOT_FOLDER}/extern)
+
 if (WIN32)
     add_definitions(-DWIN32)
 elseif (APPLE)
@@ -15,6 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${ROOT_FOLDER}/common)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/PhysX/physx/include)
 include_directories(${PROJECT_SOURCE_DIR}/../extern/PhysX/pxshared/include)
 

@@ -9,6 +9,8 @@
 #include <filesystem>
 #include <string>
 
+#include "timer.h"
+
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
@@ -734,6 +736,10 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 
 int main_render(const char* path)
 {
+	common::timer _timer;
+	uint64_t cycles = 0u;
+	float elapsed = 0.f;
+
 	std::filesystem::path root_path = std::filesystem::path(path);
 
 	int rc = glfwInit();
@@ -844,6 +850,17 @@ int main_render(const char* path)
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
+
+		cycles++;
+		float delta = _timer.elapsed_time();
+		elapsed+=delta;
+		_timer.restart();
+
+		if (elapsed > 1.0f){
+			printf("FPS: %d for 1 secs\n", cycles);
+			cycles = 0;
+			elapsed = 0.f;
+		}
 
 		resizeSwapchainIfNecessary(swapchain, physicalDevice, device, surface, familyIndex, swapchainFormat, renderPass);
 
