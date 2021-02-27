@@ -1,7 +1,7 @@
 # HurricaneEngine3D
 
 Educational project to get familiar with Vulkan, PhysX.
-Maybe it will work out and new game engine will born ^_^
+Maybe it will work out and new game engine will be born ^_^
 
 Supported platforms:
 Windows,
