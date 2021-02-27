@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(VkRender)
+project(PxPhys)
 
 set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
 set(EXTERN_FOLDER ${ROOT_FOLDER}/extern)
+set(PHYSX_FOLDER ${EXTERN_FOLDER}/PhysX)
+set(PHYSX_BIN_FOLDER ${PHYSX_FOLDER}/physx/bin/win.x86_64.vc142.mt/debug)
 
 if (WIN32)
     add_definitions(-DWIN32)
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
+    add_definitions(-DNOMINMAX)
+    add_definitions(-DPXPHYS_EXPORTS)
 elseif (APPLE)
     add_definitions(-DAPPLE)
 elseif (UNIX)
@@ -19,26 +24,33 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${ROOT_FOLDER}/common)
-include_directories(${PROJECT_SOURCE_DIR}/../extern/PhysX/physx/include)
-include_directories(${PROJECT_SOURCE_DIR}/../extern/PhysX/pxshared/include)
+include_directories(${PHYSX_FOLDER}/physx/include)
+include_directories(${PHYSX_FOLDER}/pxshared/include)
 
 add_library(${PROJECT_NAME} SHARED Physics.cpp
 )
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/../extern/glfw/build/src/libglfw3.a)
 
-# if (APPLE)
-#     target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
-#     target_link_libraries(${PROJECT_NAME} "-framework OpenGL")
-#     target_link_libraries(${PROJECT_NAME} "-framework IOKit")
-#     target_link_libraries(${PROJECT_NAME} "-framework CoreVideo")
-# elseif (UNIX)
-#     target_link_libraries(${PROJECT_NAME} dl)
-#     target_link_libraries(${PROJECT_NAME} pthread)
-# endif ()
+if (WIN32)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY
+         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysX_64.lib)
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXCommon_64.lib)
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXFoundation_64.lib)
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXExtensions_static_64.lib)
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXPvdSDK_static_64.lib)
 
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_BIN_FOLDER}/PhysX_64.dll"
+        "${CMAKE_BINARY_DIR}/$<CONFIGURATION>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_BIN_FOLDER}/PhysXCommon_64.dll"
+        "${CMAKE_BINARY_DIR}/$<CONFIGURATION>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_BIN_FOLDER}/PhysXFoundation_64.dll"
+        "${CMAKE_BINARY_DIR}/$<CONFIGURATION>"
+)
+elseif(APPLE)
+elseif(UNIX)
+endif()
 
-
-
-install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/../Bin)
-#install(FILES main.cpp DESTINATION src)

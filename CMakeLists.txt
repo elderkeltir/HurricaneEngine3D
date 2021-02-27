@@ -7,5 +7,6 @@ if (WIN32)
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 endif()
 
+add_subdirectory (PxPhys)
 add_subdirectory (VkRender)
 add_subdirectory (Launcher)

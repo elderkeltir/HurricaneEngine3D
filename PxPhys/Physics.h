@@ -2,6 +2,7 @@
 #define WIN64
 
 #ifdef PXPHYS_EXPORTS
+#undef PXPHYS_EXPORTS
 #define PXPHYS_EXPORTS __declspec(dllexport)
 #else
 #define PXPHYS_EXPORTS __declspec(dllimport)

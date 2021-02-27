@@ -1,4 +1,4 @@
-//#include "Physics.h"
+#include "Physics.h"
 #include "Render.h"
 #ifdef WIN32
 #include <Windows.h>
@@ -57,10 +57,10 @@ std::filesystem::path get_root_path(){
 int main(int argc, const char** argv) {
 	std::filesystem::path root_path = get_root_path();
 
-	//PhysSDK p;
-	//p.Init();
+	PhysSDK p;
+	p.Init();
 
 	main_render(root_path.string().c_str());
 
-	//p.Shutdown();
+	p.Shutdown();
 }
