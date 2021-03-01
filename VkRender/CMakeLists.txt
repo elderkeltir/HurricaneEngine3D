@@ -24,6 +24,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${ROOT_FOLDER}/common)
+include_directories(${ROOT_FOLDER}/interfaces)
 include_directories(${EXTERN_FOLDER}/volk)
 include_directories(${EXTERN_FOLDER}/glfw/include)
 include_directories(${EXTERN_FOLDER}/meshoptimizer/src)

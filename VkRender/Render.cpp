@@ -736,7 +736,7 @@ void destroyBuffer(const Buffer& buffer, VkDevice device)
 
 int main_render(const char* path)
 {
-	common::timer _timer;
+	cmn::timer _timer;
 	int cycles = 0u;
 	float elapsed = 0.f;
 
@@ -938,8 +938,6 @@ int main_render(const char* path)
 		// uncomment to reduce presure on hardware
 		//glfwWaitEvents();
 	}
-
-	VK_CHECK(vkDeviceWaitIdle(device));
 
 	vkDestroyCommandPool(device, commandPool, 0);
 
