@@ -1,5 +1,5 @@
 namespace iface{
-    class RenderCommandQueueDispatcher{
+    struct RenderCommandQueueDispatcher{
 
     };
 }

@@ -267,7 +267,7 @@ VkSwapchainKHR createSwapchain(VkDevice device, VkSurfaceKHR surface, VkSurfaceC
 
 	VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	createInfo.surface = surface;
-	createInfo.minImageCount = std::max(2u, surfaceCaps.minImageCount);
+	createInfo.minImageCount = std::max(2u, surfaceCaps.minImageCount); //double buffering
 	createInfo.imageFormat = format;
 	createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	createInfo.imageExtent.width = width;
@@ -856,8 +856,8 @@ int main_render(const char* path)
 		elapsed+=delta;
 		_timer.restart();
 
-		if (elapsed > 1.0f){
-			printf("FPS: %d for 1 secs\n", cycles);
+		if (elapsed > 5.0f){
+			printf("FPS: %d for 5 secs\n", cycles/5);
 			cycles = 0;
 			elapsed = 0.f;
 		}

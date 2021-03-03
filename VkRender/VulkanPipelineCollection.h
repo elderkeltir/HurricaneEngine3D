@@ -1,5 +1,32 @@
 #include "RenderPipelineCollection.h"
 
-class VulkanPipelineCollection : public iface::RenderPipelineCollection{
+#include <volk.h>
 
+#include <vector>
+
+class VulkanShaderManager;
+class VulkanSurface;
+
+class VulkanPipelineCollection : public iface::RenderPipelineCollection{
+public:
+    struct VulkanPipelineSetup{
+        VkPipeline pipeline;
+        VkRenderPass renderPass;
+    };
+public:
+    VulkanPipelineCollection();
+    void Initialize(VkDevice device, VulkanShaderManager * shaderMgr, VulkanSurface * surface);
+    const VulkanPipelineSetup& GetPipeline(PipelineType type) const;;
+
+private:
+    VkPipelineLayout CreatePipelineLayout(PipelineType type) const; // load form text files in future or binary files w\e
+    VkPipeline CreateGraphicsPipeline(PipelineType type, VkRenderPass renderPass) const;
+    VkRenderPass CreateRenderPass(PipelineType type) const;
+
+    VkPipelineCache m_pipelineCache;
+    std::vector<VulkanPipelineSetup> m_pipelines;
+
+    VulkanShaderManager * r_shaderMgr;
+    VulkanSurface * r_surface;
+    VkDevice r_device;
 };
