@@ -3,7 +3,7 @@
 #include "VulkanSurface.h"
 
 
-VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass) : 
+VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize) : 
     m_swapChain(nullptr),
 	r_physicalDevice(physicalDevice),
 	r_device(device),
@@ -12,10 +12,16 @@ VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice devic
 	m_format(format),
 	m_width(width),
 	m_height(height),
-	r_renderPass(renderPass)
+	r_renderPass(renderPass),
+	mr_bufferSize(bufferSize)
 {
 
 }
+
+VulkanSwapChain::~VulkanSwapChain(){
+	Destroy(m_swapChain, m_imageViews, m_framebuffers);
+}
+
 void VulkanSwapChain::InitializeSwapChain(){
 	CreateSwapChain();
 	assert(m_swapChain);
@@ -73,6 +79,23 @@ void VulkanSwapChain::Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView>
 	vkDestroySwapchainKHR(r_device, swapChain, 0);
 }
 
+uint32_t VulkanSwapChain::AcquireNextImage(VkSemaphore acquireSemaphore){
+	uint32_t imageIndex = 0;
+	VK_CHECK(vkAcquireNextImageKHR(r_device, m_swapChain, ~0ull, acquireSemaphore, VK_NULL_HANDLE, &imageIndex));
+
+	return imageIndex;
+}
+
+void VulkanSwapChain::BindRenderStartBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex){
+	VkImageMemoryBarrier renderBeginBarrier = CreateImageBarrier(imageIndex, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderBeginBarrier);
+}
+
+void VulkanSwapChain::BindRenderEndBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex){
+	VkImageMemoryBarrier renderEndBarrier = CreateImageBarrier(imageIndex, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &renderEndBarrier);
+
+}
 
 void VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain){
 	VkSurfaceCapabilitiesKHR surfaceCaps = GetSurfaceCapabilities();
@@ -87,7 +110,7 @@ void VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain){
 
 	VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	createInfo.surface = r_surface->Vk_surface();
-	createInfo.minImageCount = std::max(2u, surfaceCaps.minImageCount); //double buffering
+	createInfo.minImageCount = std::max(mr_bufferSize, surfaceCaps.minImageCount);
 	createInfo.imageFormat = m_format;
 	createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	createInfo.imageExtent.width = m_width;

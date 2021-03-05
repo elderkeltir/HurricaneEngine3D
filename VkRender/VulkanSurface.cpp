@@ -7,9 +7,6 @@
 void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDevice){
     r_instance = instance;
     r_physicalDevice = physicalDevice;
-    // init glfw
-    const int rc = glfwInit();
-	assert(rc);
 
     // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -20,9 +17,15 @@ void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDev
     VK_CHECK(glfwCreateWindowSurface(r_instance, m_window, NULL, &m_vk_surface));
 }
 
-uint32_t VulkanSurface::GetRequiredExtension(const char ** extensions) const{
+std::vector<const char*> VulkanSurface::GetRequiredExtension(){
     uint32_t glfwExtensionsNum = 0;
-	*extensions = *glfwGetRequiredInstanceExtensions(&glfwExtensionsNum);
+	const char ** glfwxtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsNum);
+    std::vector<const char*> extensions(glfwExtensionsNum);
+    for (size_t i = 0u; i < glfwExtensionsNum; i++){
+        extensions[i] = glfwxtensions[i];
+    }
+
+    return extensions;
 }
 
 bool VulkanSurface::CheckPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const{
@@ -30,7 +33,11 @@ bool VulkanSurface::CheckPresentationSupport(VkPhysicalDevice physicalDevice, ui
 }
 
 void VulkanSurface::GetWindowsExtent(uint32_t &width, uint32_t &height) const{
-    // TODO?
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+	VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r_physicalDevice, m_vk_surface, &surfaceCaps));
+
+    width = surfaceCaps.currentExtent.width;
+    height = surfaceCaps.currentExtent.height;
 }
 
 bool VulkanSurface::PollWindowEvents() const{
@@ -45,6 +52,12 @@ bool VulkanSurface::PollWindowEvents() const{
 
 VkSurfaceKHR& VulkanSurface::Vk_surface(){
     return m_vk_surface;
+}
+
+VulkanSurface::VulkanSurface(){
+    // init glfw
+    const int rc = glfwInit();
+	assert(rc);
 }
 
 VulkanSurface::~VulkanSurface(){

@@ -9,7 +9,7 @@
 #include <filesystem>
 #include <string>
 
-#include "timer.h"
+#include "common/timer.h"
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -829,12 +829,11 @@ int main_render(const char* path)
 	VkCommandBuffer commandBuffer = 0;
 	VK_CHECK(vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer));
 
-	VkPhysicalDeviceMemoryProperties memoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-
 	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 	Mesh mesh = parseObj(obj_path.c_str());
-
+	
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
 	Buffer vb = {};
 	createBuffer(vb, device, memoryProperties, 128 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
@@ -897,7 +896,6 @@ int main_render(const char* path)
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, trianglePipeline);
-		//vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
 		VkDeviceSize dummyOffset = 0;
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vb.buffer, &dummyOffset);

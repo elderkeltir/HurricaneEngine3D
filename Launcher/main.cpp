@@ -1,5 +1,5 @@
 #include "Physics.h"
-#include "Render.h"
+#include "VulkanBackend.h"
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -60,7 +60,12 @@ int main(int argc, const char** argv) {
 	PhysSDK p;
 	p.Init();
 
-	main_render(root_path.string().c_str());
+	VulkanBackend renderEngine;
+	renderEngine.Initialize(root_path.string().c_str());
+	while(true){
+		renderEngine.Render();
+	}
+	//main_render(root_path.string().c_str());
 
 	p.Shutdown();
 }

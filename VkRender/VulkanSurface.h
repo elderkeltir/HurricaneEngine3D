@@ -1,5 +1,8 @@
+#pragma once
+
 #include "render_utils.h"
 #include <volk.h>
+#include <vector>
 
 // forward declaration
 class GLFWwindow;
@@ -8,7 +11,7 @@ class GLFWwindow;
 class VulkanSurface{
 public:
     void Initialize(VkInstance instance, VkPhysicalDevice physicalDevice);
-    uint32_t GetRequiredExtension(const char ** extensions) const;
+    static std::vector<const char*> GetRequiredExtension();
     bool CheckPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const;
     void GetWindowsExtent(uint32_t &width, uint32_t &height) const;
     bool PollWindowEvents() const;
@@ -16,6 +19,7 @@ public:
 
     VkSurfaceKHR& Vk_surface();
 
+    VulkanSurface();
     ~VulkanSurface();
 private:
     VkSurfaceKHR m_vk_surface;

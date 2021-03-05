@@ -1,3 +1,5 @@
+#pragma once
+
 #include <volk.h>
 
 #include <vector>
@@ -8,7 +10,8 @@ class VulkanSurface;
 
 class VulkanSwapChain{
 public:
-    VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass);
+    VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize);
+    ~VulkanSwapChain();
 
     void InitializeSwapChain();
     void ResizeOnNeed();
@@ -21,6 +24,9 @@ public:
     VkFramebuffer& GetFB(size_t idx);
     uint32_t GetImageCount() const;
     VkImageMemoryBarrier CreateImageBarrier(uint32_t imageindex, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+    uint32_t AcquireNextImage(VkSemaphore acquireSemaphore);
+    void BindRenderStartBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void BindRenderEndBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 private:
     void CreateSwapChain(VkSwapchainKHR oldSwapChain = nullptr);
     VkFramebuffer CreateFramebuffer(VkImageView imageView) const;
@@ -42,5 +48,7 @@ private:
     VkDevice r_device;
     VulkanSurface * r_surface;
     uint32_t r_familyIndex;
-    VkRenderPass r_renderPass
+    VkRenderPass r_renderPass;
+    
+    const uint32_t mr_bufferSize;
 };

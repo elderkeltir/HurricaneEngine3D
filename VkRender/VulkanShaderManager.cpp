@@ -23,10 +23,22 @@ typedef VulkanShaderDB::VulkanShaderDBSlice VulkanShaderDBSliceT;
 typedef VulkanShaderDB::VulkanShaderDBSlice::VulkanShaderDBSlicePerType VulkanShaderDBSlicePerTypeT;
 
 VulkanShaderManager::VulkanShaderManager(){
+	m_shaderDB = new VulkanShaderDB;
     m_shaderDB->m_db.resize(VulkanPipelineCollection::PipelineType::PT_size);
     for (VulkanShaderDBSliceT & slice : m_shaderDB->m_db){
         slice.m_DBslices.resize(ShaderType::ST_size);
     }
+}
+
+VulkanShaderManager::~VulkanShaderManager(){
+	assert(m_shaderDB->m_db.size() == 1);
+	assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_vertex).m_shadetTypeSlices.size() == 1);
+	assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.size() == 1);
+
+	vkDestroyShaderModule(r_device, m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_vertex).m_shadetTypeSlices.front(), 0);
+	vkDestroyShaderModule(r_device, m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.front(), 0);
+	delete m_shaderDB;
+	m_shaderDB = nullptr;
 }
 
 void VulkanShaderManager::Initialize(VkDevice device, const char * folderPath){

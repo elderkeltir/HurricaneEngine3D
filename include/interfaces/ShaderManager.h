@@ -1,3 +1,5 @@
+#pragma once
+
 namespace iface{
     struct ShaderManager{
         enum ShaderType {

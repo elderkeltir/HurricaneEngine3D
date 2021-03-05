@@ -4,8 +4,18 @@
 #include "VulkanShaderManager.h"
 
 
-VulkanPipelineCollection::VulkanPipelineCollection(){
+VulkanPipelineCollection::VulkanPipelineCollection() :
+	m_pipelineCache(nullptr)
+{
     m_pipelines.resize(PipelineType::PT_size);
+}
+
+VulkanPipelineCollection::~VulkanPipelineCollection(){
+	for (VulkanPipelineSetup &pipelineSetup : m_pipelines){
+		vkDestroyPipeline(r_device, pipelineSetup.pipeline, 0);
+		vkDestroyPipelineLayout(r_device, pipelineSetup.layout, 0);
+		vkDestroyRenderPass(r_device, pipelineSetup.renderPass, 0);
+	}
 }
 
 void VulkanPipelineCollection::Initialize(VkDevice device, VulkanShaderManager * shaderMgr, VulkanSurface * surface){
@@ -15,16 +25,43 @@ void VulkanPipelineCollection::Initialize(VkDevice device, VulkanShaderManager *
 
     // Reate pipelines from config file in future
     VkRenderPass renderPass = CreateRenderPass(PipelineType::PT_mesh);
-    VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_mesh, renderPass);
+	VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_mesh);
+    VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_mesh, layout, renderPass);
 
+	m_pipelines[PipelineType::PT_mesh].layout = layout;
     m_pipelines[PipelineType::PT_mesh].pipeline = pipeline;
     m_pipelines[PipelineType::PT_mesh].renderPass = renderPass;
 }
 
 const VulkanPipelineCollection::VulkanPipelineSetup& VulkanPipelineCollection::GetPipeline(PipelineType type)const {
-    assert(type > PipelineType::PT_size);
+    assert(type < PipelineType::PT_size);
 
     return m_pipelines.at(type);
+}
+
+void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer, PipelineType type, VkFramebuffer framebuffer){
+	uint32_t width = 0, height = 0;
+	r_surface->GetWindowsExtent(width, height);
+	VkClearColorValue color = { 48.f / 255.f, 10.f / 255.f, 36.f / 255.f, 1 };
+	VkClearValue clearColor = { color };
+
+	VkRenderPassBeginInfo passBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	passBeginInfo.renderPass = m_pipelines[type].renderPass;
+	passBeginInfo.framebuffer = framebuffer;
+	passBeginInfo.renderArea.extent.width = width;
+	passBeginInfo.renderArea.extent.height = height;
+	passBeginInfo.clearValueCount = 1;
+	passBeginInfo.pClearValues = &clearColor;
+
+	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void VulkanPipelineCollection::EndRenderPass(VkCommandBuffer commandBuffer){
+	vkCmdEndRenderPass(commandBuffer);
+}
+
+void VulkanPipelineCollection::BindPipeline(VkCommandBuffer commandBuffer, PipelineType type){
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[type].pipeline);
 }
 
 VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType type)const {
@@ -36,10 +73,8 @@ VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType typ
 	return layout;
 }
 
-VkPipeline VulkanPipelineCollection::CreateGraphicsPipeline(PipelineType type, VkRenderPass renderPass) const {
+VkPipeline VulkanPipelineCollection::CreateGraphicsPipeline(PipelineType type, VkPipelineLayout layout, VkRenderPass renderPass) const {
     assert(type < PipelineType::PT_size);
-
-    VkPipelineLayout layout = CreatePipelineLayout(type);
 
 	VkGraphicsPipelineCreateInfo createInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
