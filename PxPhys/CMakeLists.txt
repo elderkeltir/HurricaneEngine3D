@@ -25,7 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${ROOT_FOLDER}/common)
+include_directories(${ROOT_FOLDER}/include)
 include_directories(${PHYSX_FOLDER}/physx/include)
 include_directories(${PHYSX_FOLDER}/pxshared/include)
 

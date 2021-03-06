@@ -23,7 +23,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${ROOT_FOLDER}/common)
+include_directories(${ROOT_FOLDER}/include)
 include_directories(${EXTERN_FOLDER}/volk)
 include_directories(${EXTERN_FOLDER}/glfw/include)
 include_directories(${EXTERN_FOLDER}/meshoptimizer/src)
@@ -31,7 +31,15 @@ if (WIN32)
     include_directories($ENV{VULKAN_SDK}/Include)
 endif()
 
-add_library(${PROJECT_NAME} SHARED Render.cpp
+add_library(${PROJECT_NAME} SHARED VulkanBackend.cpp
+    VulkanShaderManager.cpp
+    VulkanMemoryManager.cpp
+    VulkanSurface.cpp
+    VulkanMesh.cpp
+    VulkanCommandQueueDispatcher.cpp
+    VulkanSwapChain.cpp
+    VulkanPipelineCollection.cpp
+
     ${EXTERN_FOLDER}/volk/volk.c
     ${EXTERN_FOLDER}/meshoptimizer/src/allocator.cpp
     ${EXTERN_FOLDER}/meshoptimizer/src/clusterizer.cpp

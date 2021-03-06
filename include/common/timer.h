@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace common
+namespace cmn
 {
 	class timer
 	{
