@@ -9,14 +9,14 @@
 class VulkanMemoryManager{
 public:
     enum BufferUsageType{
-            BUT_vertex_buffer,
-            BUT_index_buffer,
+            BUT_vertex_buffer = 1 << 0,
+            BUT_index_buffer = 1 << 1,
             BUT_size
     };
     enum MemoryPropertyFlag{
-        MPF_host_visible,
-        MPF_device_local,
-        MPF_host_coherent,
+        MPF_host_visible = 1 << 0,
+        MPF_device_local = 1 << 1,
+        MPF_host_coherent = 1 << 2,
         MPF_size
     };
     struct BufferSet{
@@ -34,17 +34,7 @@ public:
     VulkanMemoryManager();
     ~VulkanMemoryManager();
 private:
-uint32_t selectMemoryType(const VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t memoryTypeBits, VkMemoryPropertyFlags flags)
-{
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-		if ((memoryTypeBits & (1 << i)) != 0 && (memoryProperties.memoryTypes[i].propertyFlags & flags) == flags)
-			return i;
-
-	assert(!"No compatible memory type found");
-	return ~0u;
-}
-    //
-    VkPhysicalDeviceMemoryProperties m_memoryProperties;
+    uint32_t SelectMemoryType(const VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t memoryTypeBits, VkMemoryPropertyFlags flags);
     std::vector<BufferSet> m_buffers;
 
     VkPhysicalDevice r_physicalDevice;

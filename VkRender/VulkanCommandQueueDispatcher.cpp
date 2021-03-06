@@ -5,7 +5,7 @@
 
 VulkanCommandQueueDispatcher::VulkanCommandQueueDispatcher(VkPhysicalDevice physicalDevice){
 	r_physicalDevice = physicalDevice;
-	m_queues.resize(QT_size);
+	m_queues.resize(1u);
 
 	uint32_t gFamilyIdx = TestFamilQueueyIndex(VK_QUEUE_GRAPHICS_BIT, r_physicalDevice);
 	assert(gFamilyIdx != VK_QUEUE_FAMILY_IGNORED);
@@ -14,7 +14,11 @@ VulkanCommandQueueDispatcher::VulkanCommandQueueDispatcher(VkPhysicalDevice phys
 
 VulkanCommandQueueDispatcher::~VulkanCommandQueueDispatcher(){
 	for (GQueue & queue : m_queues){
+		VK_CHECK(vkWaitForFences(r_device, queue.cmdBufferFences.size(), &queue.cmdBufferFences[0], 1u, ~0u));
 		vkDestroyCommandPool(r_device, queue.commandPool, 0);
+		for (VkFence &fence : queue.cmdBufferFences){
+			vkDestroyFence(r_device, fence, 0);
+		}
 	}
 	
 	vkDestroySemaphore(r_device, m_releaseSemaphore, 0);
@@ -44,10 +48,15 @@ void VulkanCommandQueueDispatcher::Initialize(VkDevice device, const uint32_t bu
 
 	// cmd buffers
 	m_queues[QT_graphics].commandBuffers.resize(cmdBuffersCount);
+	m_queues[QT_graphics].cmdBufferFences.resize(cmdBuffersCount);
 	for (size_t i = 0u; i < cmdBuffersCount; i++){
 		VkCommandBuffer gCommandBuffer = CreateCommandBuffer(m_queues[QT_graphics].commandPool);
 		assert(gCommandBuffer);
 		m_queues[QT_graphics].commandBuffers[i] = gCommandBuffer;
+
+		VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		vkCreateFence(r_device, &fenceInfo, 0, &m_queues[QT_graphics].cmdBufferFences[i]);
 	}
 }
 
@@ -76,6 +85,9 @@ void VulkanCommandQueueDispatcher::BeginCommandBuffer(QueueType type, uint32_t c
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
+	VK_CHECK(vkWaitForFences(r_device, 1, &m_queues[type].cmdBufferFences[commandBufferIndex], 0u, ~0u));
+	VK_CHECK(vkResetFences(r_device, 1, &m_queues[type].cmdBufferFences[commandBufferIndex]));
+
 	VK_CHECK(vkBeginCommandBuffer(m_queues[type].commandBuffers[commandBufferIndex], &beginInfo));
 }
 
@@ -95,7 +107,7 @@ void VulkanCommandQueueDispatcher::SubmitQueue(QueueType type, uint32_t commandB
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &m_releaseSemaphore;
 
-	VK_CHECK(vkQueueSubmit(m_queues[type].queue, 1, &submitInfo, VK_NULL_HANDLE));
+	VK_CHECK(vkQueueSubmit(m_queues[type].queue, 1, &submitInfo, m_queues[type].cmdBufferFences[commandBufferIndex]));
 }
 
 void VulkanCommandQueueDispatcher::PresentQueue(QueueType type, uint32_t imageIndex, VulkanSwapChain * swapChain){
@@ -134,7 +146,7 @@ VkSemaphore VulkanCommandQueueDispatcher::CreateSemaphore() const {
 
 VkCommandPool VulkanCommandQueueDispatcher::CreateCommandPool(uint32_t familyIndex) const {
 	VkCommandPoolCreateInfo createInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	createInfo.queueFamilyIndex = familyIndex;
 
 	VkCommandPool commandPool = 0;

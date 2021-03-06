@@ -28,6 +28,7 @@ public:
         VkQueue queue;
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> commandBuffers; // Use L * T + N pools. (L = the number of buffered frames, T = the number of threads which record command buffers, N = extra pools for secondary command buffers).
+        std::vector<VkFence> cmdBufferFences;
         GQueue() : familyQueueIndex(0), queue(nullptr), commandPool(nullptr) {}
     };
 public:

@@ -31,9 +31,9 @@ VulkanShaderManager::VulkanShaderManager(){
 }
 
 VulkanShaderManager::~VulkanShaderManager(){
-	assert(m_shaderDB->m_db.size() == 1);
-	assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_vertex).m_shadetTypeSlices.size() == 1);
-	assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.size() == 1);
+	//assert(m_shaderDB->m_db.size() == 1);
+	//assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_vertex).m_shadetTypeSlices.size() == 1);
+	//assert(m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.size() == 1);
 
 	vkDestroyShaderModule(r_device, m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_vertex).m_shadetTypeSlices.front(), 0);
 	vkDestroyShaderModule(r_device, m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.front(), 0);

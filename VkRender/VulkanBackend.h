@@ -27,6 +27,7 @@ public:
 public:
     void Initialize(const char * rootFolder) override final;
     void Render() override final;
+    bool IsRunning() override final;
 
 private:
     void CreateInstance();

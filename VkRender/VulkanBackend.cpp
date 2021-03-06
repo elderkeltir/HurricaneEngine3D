@@ -17,6 +17,48 @@
 #include <cstring>
 #include <filesystem>
 
+static uint64_t frame = 0;
+
+#ifdef _DEBUG
+VkDebugReportCallbackEXT gDdebugCallback = nullptr;
+
+VkBool32 debugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
+{
+	const char* type =
+		(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+		? "ERROR"
+		: (flags & (VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT))
+		? "WARNING"
+		: "INFO";
+
+	char message[4096];
+	snprintf(message, (sizeof(message) / sizeof((message)[0])), "%s: %s\n", type, pMessage);
+
+	printf("%s", message);
+
+#ifdef _WIN32
+	OutputDebugStringA(message);
+#endif
+
+	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+		assert(!"Validation error encountered!");
+
+	return VK_FALSE;
+}
+
+VkDebugReportCallbackEXT registerDebugCallback(VkInstance instance)
+{
+	VkDebugReportCallbackCreateInfoEXT createInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+	createInfo.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT;
+	createInfo.pfnCallback = debugReportCallback;
+
+	VkDebugReportCallbackEXT callback = 0;
+	VK_CHECK(vkCreateDebugReportCallbackEXT(instance, &createInfo, 0, &callback));
+
+	return callback;
+}
+#endif // _DEBUG
+
 VulkanBackend::VulkanBackend():
 	m_bufferSize(3u),
 	m_instance(nullptr),
@@ -33,6 +75,8 @@ VulkanBackend::VulkanBackend():
 
 VulkanBackend::~VulkanBackend(){
 	// TODO: replace allocations with intrusive ptr when guys will implement it
+	delete m_cmdQueueDispatcher;
+	m_cmdQueueDispatcher = nullptr;
 	delete m_memoryMgr;
 	m_memoryMgr = nullptr;
 	delete m_pipelineCollection;
@@ -43,9 +87,9 @@ VulkanBackend::~VulkanBackend(){
 	m_shaderMgr = nullptr;
 	delete m_surface;
 	m_surface = nullptr;
-	delete m_cmdQueueDispatcher;
-	m_cmdQueueDispatcher = nullptr;
-
+#ifdef _DEBUG
+	vkDestroyDebugReportCallbackEXT(m_instance, gDdebugCallback, 0);
+#endif
 	vkDestroyDevice(m_device, 0);
 	vkDestroyInstance(m_instance, 0);
 }
@@ -63,6 +107,10 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	CreateInstance();
 	assert(m_instance);
 	volkLoadInstance(m_instance);
+
+#ifdef _DEBUG
+	gDdebugCallback = registerDebugCallback(m_instance);
+#endif // _DEBUG
 
 	// pick Physical device
 	uint32_t physicalDeviceCount;
@@ -102,6 +150,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	m_surface->GetWindowsExtent(windowWidth, windowHeight);
 	assert(!!windowWidth && !!windowHeight);
 	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
+	m_swapChain->InitializeSwapChain();
 
 	m_memoryMgr = new VulkanMemoryManager;
 	m_memoryMgr->Initialize(m_physicalDevice, m_device);
@@ -110,6 +159,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 	VulkanMesh mesh;
 	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_device);
+	m_meshes.push_back(mesh);
 }
 
 void VulkanBackend::Render(){
@@ -120,6 +170,7 @@ void VulkanBackend::Render(){
 		uint32_t width = 0u, height = 0u;
 		m_surface->GetWindowsExtent(width, height);
 		uint32_t nextImg_idx = m_swapChain->AcquireNextImage(m_cmdQueueDispatcher->GetAquireSemaphore());
+		//printf("[%d]nextImg=%d\n", frame, nextImg_idx);
 		VkCommandBuffer commandBuffer = m_cmdQueueDispatcher->GetCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		//m_cmdQueueDispatcher->ResetCommandPool(VulkanCommandQueueDispatcher::QueueType::QT_graphics);
 		m_cmdQueueDispatcher->BeginCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
@@ -140,10 +191,17 @@ void VulkanBackend::Render(){
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);
 		m_swapChain->BindRenderEndBarrier(commandBuffer, nextImg_idx);
+		m_cmdQueueDispatcher->EndCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 
 		m_cmdQueueDispatcher->SubmitQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		m_cmdQueueDispatcher->PresentQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx, m_swapChain);
+
+		frame++;
 	}
+}
+
+bool VulkanBackend::IsRunning(){
+	return m_surface->PollWindowEvents();
 }
 
 void VulkanBackend::CreateInstance(){

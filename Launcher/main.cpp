@@ -19,6 +19,7 @@
 
 #define ROOT_FOLDER_NAME "HurricaneEngine3D"
 
+#include "common/timer.h"
 
 std::filesystem::path get_root_path(){
 	std::filesystem::path root_path;
@@ -56,15 +57,30 @@ std::filesystem::path get_root_path(){
 
 int main(int argc, const char** argv) {
 	std::filesystem::path root_path = get_root_path();
+	cmn::timer _timer;
+	int cycles = 0u;
+	float elapsed = 0.f;
 
 	PhysSDK p;
 	p.Init();
 
 	VulkanBackend renderEngine;
 	renderEngine.Initialize(root_path.string().c_str());
-	while(true){
+	do{
+		cycles++;
+		float delta = _timer.elapsed_time();
+		elapsed+=delta;
+		_timer.restart();
+
+		if (elapsed > 5.0f){
+			printf("FPS: %d for 5 secs\n", cycles/5);
+			cycles = 0;
+			elapsed = 0.f;
+		}
 		renderEngine.Render();
 	}
+	while(renderEngine.IsRunning());
+
 	//main_render(root_path.string().c_str());
 
 	p.Shutdown();
