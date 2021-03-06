@@ -14,7 +14,7 @@ public:
     ~VulkanSwapChain();
 
     void InitializeSwapChain();
-    void ResizeOnNeed();
+    void ResizeOnNeed(uint32_t &w, uint32_t &h);
     void Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers) const;
 
     VkSwapchainKHR& GetSwapChain();

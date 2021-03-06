@@ -39,9 +39,9 @@ const VulkanPipelineCollection::VulkanPipelineSetup& VulkanPipelineCollection::G
     return m_pipelines.at(type);
 }
 
-void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer, PipelineType type, VkFramebuffer framebuffer){
-	uint32_t width = 0, height = 0;
-	r_surface->GetWindowsExtent(width, height);
+void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer, PipelineType type, VkFramebuffer framebuffer, uint32_t w, uint32_t h){
+	uint32_t width = w, height = h;
+	//r_surface->GetWindowsExtent(w, h);
 	VkClearColorValue color = { 48.f / 255.f, 10.f / 255.f, 36.f / 255.f, 1 };
 	VkClearValue clearColor = { color };
 

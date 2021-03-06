@@ -47,11 +47,13 @@ void VulkanSwapChain::InitializeSwapChain(){
 	}
 }
 
-void VulkanSwapChain::ResizeOnNeed(){
+void VulkanSwapChain::ResizeOnNeed(uint32_t &w, uint32_t &h){
 	VkSurfaceCapabilitiesKHR surfaceCaps = GetSurfaceCapabilities();
 
 	const uint32_t newWidth = surfaceCaps.currentExtent.width;
 	const uint32_t newHeight = surfaceCaps.currentExtent.height;
+	w = newWidth;
+	h = newHeight;
 
 	if (m_width == newWidth && m_height == newHeight){
 		return;
@@ -67,6 +69,8 @@ void VulkanSwapChain::ResizeOnNeed(){
 	VK_CHECK(vkDeviceWaitIdle(r_device));
 
 	Destroy(swapChain, imageViews, framebuffers);
+
+
 }
 
 void VulkanSwapChain::Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers) const{
