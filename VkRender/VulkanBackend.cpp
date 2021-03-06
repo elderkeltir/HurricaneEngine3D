@@ -172,12 +172,8 @@ void VulkanBackend::Render(){
 		uint32_t width = 0u, height = 0u;
 		m_swapChain->ResizeOnNeed(width, height);
 
-
-		//m_surface->GetWindowsExtent(width, height);
 		uint32_t nextImg_idx = m_swapChain->AcquireNextImage(m_cmdQueueDispatcher->GetAquireSemaphore());
-		//printf("[%d]nextImg=%d\n", frame, nextImg_idx);
 		VkCommandBuffer commandBuffer = m_cmdQueueDispatcher->GetCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
-		//m_cmdQueueDispatcher->ResetCommandPool(VulkanCommandQueueDispatcher::QueueType::QT_graphics);
 		m_cmdQueueDispatcher->BeginCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx);
 		m_pipelineCollection->BeginRenderPass(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh, m_swapChain->GetFB(nextImg_idx), width, height);
