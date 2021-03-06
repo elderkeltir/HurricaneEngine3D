@@ -1,5 +1,16 @@
 #pragma once
 
+#ifdef _WIN32
+#ifdef VKRENDER_EXPORTS	
+#undef VKRENDER_EXPORTS	
+#define VKRENDER_EXPORTS __declspec(dllexport)	
+#else	
+#define VKRENDER_EXPORTS __declspec(dllimport)	
+#endif
+#else 
+#define VKRENDER_EXPORTS
+#endif
+
 #include "interfaces/RenderBackend.h"
 
 #include <vector>
@@ -19,7 +30,7 @@ DEFINE_HANDLE(VkPhysicalDevice)
 DEFINE_HANDLE(VkInstance)
 DEFINE_HANDLE(VkDevice)
 
-class VulkanBackend : public iface::RenderBackend {
+class VKRENDER_EXPORTS VulkanBackend : public iface::RenderBackend {
 public:
     VulkanBackend();
     ~VulkanBackend() override;

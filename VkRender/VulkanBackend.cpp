@@ -17,6 +17,10 @@
 #include <cstring>
 #include <filesystem>
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
+
 static uint64_t frame = 0;
 
 #ifdef _DEBUG
