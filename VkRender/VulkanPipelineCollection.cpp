@@ -7,7 +7,7 @@
 VulkanPipelineCollection::VulkanPipelineCollection() :
 	m_pipelineCache(nullptr)
 {
-    m_pipelines.resize(PipelineType::PT_size);
+    m_pipelines.resize(1);
 }
 
 VulkanPipelineCollection::~VulkanPipelineCollection(){
@@ -15,22 +15,25 @@ VulkanPipelineCollection::~VulkanPipelineCollection(){
 		vkDestroyPipeline(r_device, pipelineSetup.pipeline, 0);
 		vkDestroyPipelineLayout(r_device, pipelineSetup.layout, 0);
 		vkDestroyRenderPass(r_device, pipelineSetup.renderPass, 0);
+		vkDestroyDescriptorSetLayout(r_device, pipelineSetup.descriptorSetLayout, nullptr);
 	}
 }
 
-void VulkanPipelineCollection::Initialize(VkDevice device, VulkanShaderManager * shaderMgr, VulkanSurface * surface){
+void VulkanPipelineCollection::Initialize(VkDevice device, VulkanShaderManager * shaderMgr, VulkanSurface * surface, uint32_t imageCount){
     r_shaderMgr = shaderMgr;
     r_device = device;
     r_surface = surface;
 
     // Reate pipelines from config file in future
     VkRenderPass renderPass = CreateRenderPass(PipelineType::PT_mesh);
-	VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_mesh);
+	VkDescriptorSetLayout descriptorSetLayout = CreateDescriptorSetLayout(PipelineType::PT_mesh);
+	VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_mesh, descriptorSetLayout);
     VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_mesh, layout, renderPass);
 
 	m_pipelines[PipelineType::PT_mesh].layout = layout;
     m_pipelines[PipelineType::PT_mesh].pipeline = pipeline;
     m_pipelines[PipelineType::PT_mesh].renderPass = renderPass;
+	m_pipelines[PipelineType::PT_mesh].descriptorSetLayout = descriptorSetLayout;
 }
 
 const VulkanPipelineCollection::VulkanPipelineSetup& VulkanPipelineCollection::GetPipeline(PipelineType type)const {
@@ -62,11 +65,14 @@ void VulkanPipelineCollection::BindPipeline(VkCommandBuffer commandBuffer, Pipel
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[type].pipeline);
 }
 
-VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType type)const {
-	VkPipelineLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType type, VkDescriptorSetLayout descriptorSetLayout)const {
+	assert(type == PipelineType::PT_mesh);
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
 	VkPipelineLayout layout = 0;
-	VK_CHECK(vkCreatePipelineLayout(r_device, &createInfo, 0, &layout));
+	VK_CHECK(vkCreatePipelineLayout(r_device, &pipelineLayoutInfo, 0, &layout));
 
 	return layout;
 }
@@ -122,6 +128,8 @@ VkPipeline VulkanPipelineCollection::CreateGraphicsPipeline(PipelineType type, V
 
 	VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 	rasterizationState.lineWidth = 1.f;
+	rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	createInfo.pRasterizationState = &rasterizationState;
 
 	VkPipelineMultisampleStateCreateInfo multisampleState = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
@@ -187,4 +195,24 @@ VkRenderPass VulkanPipelineCollection::CreateRenderPass(PipelineType type) const
 	VK_CHECK(vkCreateRenderPass(r_device, &createInfo, 0, &renderPass));
 
 	return renderPass;
+}
+
+VkDescriptorSetLayout VulkanPipelineCollection::CreateDescriptorSetLayout(PipelineType type) const{
+	assert(type == PipelineType::PT_mesh);
+	VkDescriptorSetLayoutBinding uboLayoutBinding;
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	VK_CHECK(vkCreateDescriptorSetLayout(r_device, &layoutInfo, nullptr, &descriptorSetLayout));
+
+	return descriptorSetLayout;
 }

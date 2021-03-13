@@ -7,6 +7,7 @@
 #include "VulkanCommandQueueDispatcher.h"
 #include "VulkanMemoryManager.h"
 #include "VulkanMesh.h"
+#include "VulkanDescriptorSetOrginizer.h"
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -73,7 +74,8 @@ VulkanBackend::VulkanBackend():
 	m_pipelineCollection(nullptr),
 	m_shaderMgr(nullptr),
 	m_cmdQueueDispatcher(nullptr),
-	m_memoryMgr(nullptr)
+	m_memoryMgr(nullptr),
+	m_descriptorSetOrganizer(nullptr)
 {
 }
 
@@ -81,6 +83,8 @@ VulkanBackend::~VulkanBackend(){
 	// TODO: replace allocations with intrusive ptr when guys will implement it
 	delete m_cmdQueueDispatcher;
 	m_cmdQueueDispatcher = nullptr;
+	delete m_descriptorSetOrganizer;
+	m_descriptorSetOrganizer = nullptr;
 	delete m_memoryMgr;
 	m_memoryMgr = nullptr;
 	delete m_pipelineCollection;
@@ -147,7 +151,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 
 	// Create Graphic Pipeline
 	m_pipelineCollection = new VulkanPipelineCollection;
-	m_pipelineCollection->Initialize(m_device, m_shaderMgr, m_surface);
+	m_pipelineCollection->Initialize(m_device, m_shaderMgr, m_surface, m_bufferSize);
 
 	// Create SwapChain
 	uint32_t windowWidth = 0, windowHeight = 0;
@@ -156,17 +160,21 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
 	m_swapChain->InitializeSwapChain();
 
+	// Descriptor sets
+	m_descriptorSetOrganizer = new VulkanDescriptorSetOrginizer;
+	m_descriptorSetOrganizer->Initialize(m_device);
+
 	m_memoryMgr = new VulkanMemoryManager;
 	m_memoryMgr->Initialize(m_physicalDevice, m_device);
 	// TODO: render scene? how to store meshes(vertex + index + UBO + texture) in render backend?
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
 	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 	VulkanMesh mesh;
-	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_device);
+	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
 	m_meshes.push_back(mesh);
 }
 
-void VulkanBackend::Render(){
+void VulkanBackend::Render(float dt){
 	if (m_surface->PollWindowEvents())
 	{
 		uint32_t width = 0u, height = 0u;
@@ -187,7 +195,7 @@ void VulkanBackend::Render(){
 		m_pipelineCollection->BindPipeline(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh);
 
 		for(VulkanMesh &mesh : m_meshes){
-			mesh.Render(commandBuffer);
+			mesh.Render(dt, commandBuffer, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).layout, nextImg_idx);
 		}
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);

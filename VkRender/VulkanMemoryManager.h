@@ -11,13 +11,12 @@ public:
     enum BufferUsageType{
             BUT_vertex_buffer = 1 << 0,
             BUT_index_buffer = 1 << 1,
-            BUT_size
+            BUT_uniform_buffer = 1 << 2
     };
     enum MemoryPropertyFlag{
         MPF_host_visible = 1 << 0,
         MPF_device_local = 1 << 1,
-        MPF_host_coherent = 1 << 2,
-        MPF_size
+        MPF_host_coherent = 1 << 2
     };
     struct BufferSet{
         VkBuffer aggregatedBuffer;

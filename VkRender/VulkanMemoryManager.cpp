@@ -6,6 +6,7 @@ uint32_t GetVulkanBufferUsageFlags(uint32_t myFlags){
     uint32_t vulkanFlags = 0u;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_vertex_buffer) vulkanFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_index_buffer) vulkanFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer) vulkanFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
     return vulkanFlags;
 }
@@ -14,6 +15,7 @@ uint32_t GetMyBufferUsageFlags(uint32_t vulkanFlags){
     uint32_t myFlags = 0u;
     if (vulkanFlags & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_vertex_buffer;
     if (vulkanFlags & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_index_buffer;
+    if (vulkanFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer;
 
     return myFlags;
 }
@@ -41,7 +43,7 @@ void VulkanMemoryManager::Initialize(VkPhysicalDevice physicalDevice, VkDevice d
     r_device = device;
     BufferSet &bufferSet = m_buffers.front();
 
-    bufferSet.bufferType = GetVulkanBufferUsageFlags(BufferUsageType::BUT_vertex_buffer | BufferUsageType::BUT_index_buffer);
+    bufferSet.bufferType = GetVulkanBufferUsageFlags(BufferUsageType::BUT_vertex_buffer | BufferUsageType::BUT_index_buffer | BufferUsageType::BUT_uniform_buffer);
     bufferSet.memoryType = GetVulkanMemoryPropertyFlags(MemoryPropertyFlag::MPF_host_visible | MemoryPropertyFlag::MPF_host_coherent);
     
     VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };

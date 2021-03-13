@@ -77,11 +77,9 @@ int main(int argc, const char** argv) {
 			cycles = 0;
 			elapsed = 0.f;
 		}
-		renderEngine.Render();
+		renderEngine.Render(delta);
 	}
 	while(renderEngine.IsRunning());
-
-	//main_render(root_path.string().c_str());
 
 	p.Shutdown();
 }

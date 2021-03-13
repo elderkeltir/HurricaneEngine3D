@@ -27,6 +27,7 @@ include_directories(${ROOT_FOLDER}/include)
 include_directories(${EXTERN_FOLDER}/volk)
 include_directories(${EXTERN_FOLDER}/glfw/include)
 include_directories(${EXTERN_FOLDER}/meshoptimizer/src)
+include_directories(${EXTERN_FOLDER}/glm)
 if (WIN32)
     include_directories($ENV{VULKAN_SDK}/Include)
 endif()
@@ -39,6 +40,7 @@ add_library(${PROJECT_NAME} SHARED VulkanBackend.cpp
     VulkanCommandQueueDispatcher.cpp
     VulkanSwapChain.cpp
     VulkanPipelineCollection.cpp
+    VulkanDescriptorSetOrginizer.cpp
 
     ${EXTERN_FOLDER}/volk/volk.c
     ${EXTERN_FOLDER}/meshoptimizer/src/allocator.cpp
