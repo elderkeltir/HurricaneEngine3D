@@ -170,7 +170,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
 	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 	VulkanMesh mesh;
-	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
+	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
 	m_meshes.push_back(mesh);
 }
 
@@ -255,43 +255,52 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 	VkPhysicalDevice discrete = 0;
 	VkPhysicalDevice fallback = 0;
 
-	for (uint32_t i = 0; i < physicalDevices.size(); ++i)
-	{
+	for (uint32_t i = 0; i < physicalDevices.size(); ++i) {
+		bool graphicsSupported = false;
+		bool transferSupported = false;
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(physicalDevices[i], &props);
 
 		printf("GPU%d: %s\n", i, props.deviceName);
-
-		uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(VulkanCommandQueueDispatcher::QueueType::QT_graphics, physicalDevices[i]);
-		if (familyIndex == VK_QUEUE_FAMILY_IGNORED)
-			continue;
-
-		auto res = glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex);
-		if (!res)
-			continue;
-
-		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
+			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_GRAPHICS_BIT);
+			if (familyIndex != VK_QUEUE_FAMILY_IGNORED)
+			{
+				if (glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex))
+				{
+					graphicsSupported = true;
+				}
+			}
+		}
+		{
+			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+			if (familyIndex != VK_QUEUE_FAMILY_IGNORED)
+			{
+				if (glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex))
+				{
+					transferSupported = true;
+				}
+			}
+		}
+
+		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && graphicsSupported && transferSupported) {
 			discrete = physicalDevices[i];
 		}
 
-		if (!fallback)
-		{
+		if (!fallback && graphicsSupported && transferSupported) {
 			fallback = physicalDevices[i];
 		}
 	}
 
 	VkPhysicalDevice result = discrete ? discrete : fallback;
 
-	if (result)
-	{
+	if (result) {
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(result, &props);
 
 		printf("Selected GPU %s\n", props.deviceName);
 	}
-	else
-	{
+	else {
 		printf("ERROR: No GPUs found\n");
 	}
 
@@ -300,11 +309,17 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 
 void VulkanBackend::CreateDevice(){
 	float queuePriorities[] = { 1.0f };
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(2);
 
-	VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-	queueInfo.queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex;
-	queueInfo.queueCount = 1;
-	queueInfo.pQueuePriorities = queuePriorities;
+	queueCreateInfos[0] = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+	queueCreateInfos[0].queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex;
+	queueCreateInfos[0].queueCount = 1;
+	queueCreateInfos[0].pQueuePriorities = queuePriorities;
+
+	queueCreateInfos[1] = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+	queueCreateInfos[1].queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_transfer).familyQueueIndex;
+	queueCreateInfos[1].queueCount = 1;
+	queueCreateInfos[1].pQueuePriorities = queuePriorities;
 
 	const char* extensions[] =
 	{
@@ -316,8 +331,8 @@ void VulkanBackend::CreateDevice(){
 	};
 
 	VkDeviceCreateInfo createInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	createInfo.queueCreateInfoCount = 1;
-	createInfo.pQueueCreateInfos = &queueInfo;
+	createInfo.queueCreateInfoCount = queueCreateInfos.size();
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
 	createInfo.ppEnabledExtensionNames = extensions;
 	createInfo.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);

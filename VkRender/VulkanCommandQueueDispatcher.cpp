@@ -5,17 +5,27 @@
 
 VulkanCommandQueueDispatcher::VulkanCommandQueueDispatcher(VkPhysicalDevice physicalDevice){
 	r_physicalDevice = physicalDevice;
-	m_queues.resize(1u);
+	m_queues.resize(2u);
 
-	uint32_t gFamilyIdx = TestFamilQueueyIndex(VK_QUEUE_GRAPHICS_BIT, r_physicalDevice);
+	// Graphics queue
+	uint32_t gFamilyIdx = TestFamilQueueyIndex(r_physicalDevice, VK_QUEUE_GRAPHICS_BIT);
 	assert(gFamilyIdx != VK_QUEUE_FAMILY_IGNORED);
 	m_queues[QT_graphics].familyQueueIndex = gFamilyIdx;
+
+	// Transfer queue
+	uint32_t tFamilyIdx = TestFamilQueueyIndex(r_physicalDevice, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+	assert(tFamilyIdx != VK_QUEUE_FAMILY_IGNORED);
+	m_queues[QT_transfer].familyQueueIndex = tFamilyIdx;
 }
 
 VulkanCommandQueueDispatcher::~VulkanCommandQueueDispatcher(){
 	for (GQueue & queue : m_queues){
-		VK_CHECK(vkWaitForFences(r_device, queue.cmdBufferFences.size(), &queue.cmdBufferFences[0], 1u, ~0u));
-		vkDestroyCommandPool(r_device, queue.commandPool, 0);
+		if (!queue.cmdBufferFences.empty()){
+			VK_CHECK(vkWaitForFences(r_device, queue.cmdBufferFences.size(), &queue.cmdBufferFences[0], 1u, ~0u));
+		}
+		if (queue.commandPool){
+			vkDestroyCommandPool(r_device, queue.commandPool, 0);
+		}
 		for (VkFence &fence : queue.cmdBufferFences){
 			vkDestroyFence(r_device, fence, 0);
 		}
@@ -29,11 +39,16 @@ void VulkanCommandQueueDispatcher::Initialize(VkDevice device, const uint32_t bu
     r_device = device;
 	const uint32_t cmdBuffersCount = bufferSize;
 	
+	// create queues
 	VkQueue gQueue;
 	vkGetDeviceQueue(device, m_queues[QT_graphics].familyQueueIndex, 0, &gQueue);
 	assert(gQueue);
-
 	m_queues[QT_graphics].queue = gQueue;
+
+	VkQueue tQueue;
+	vkGetDeviceQueue(device, m_queues[QT_transfer].familyQueueIndex, 0, &tQueue);
+	assert(tQueue);
+	m_queues[QT_transfer].queue = tQueue;
 
 	// semaphores
 	m_acquireSemaphore = CreateSemaphore();
@@ -45,6 +60,10 @@ void VulkanCommandQueueDispatcher::Initialize(VkDevice device, const uint32_t bu
 	VkCommandPool gCmdPool = CreateCommandPool(m_queues[QT_graphics].familyQueueIndex);
 	assert(gCmdPool);
 	m_queues[QT_graphics].commandPool = gCmdPool;
+
+	VkCommandPool tCmdPool = CreateCommandPool(m_queues[QT_transfer].familyQueueIndex);
+	assert(tCmdPool);
+	m_queues[QT_transfer].commandPool = tCmdPool;
 
 	// cmd buffers
 	m_queues[QT_graphics].commandBuffers.resize(cmdBuffersCount);
@@ -61,7 +80,7 @@ void VulkanCommandQueueDispatcher::Initialize(VkDevice device, const uint32_t bu
 }
 
 VulkanCommandQueueDispatcher::GQueue VulkanCommandQueueDispatcher::GetQueue(QueueType type) const{
-	assert(type == QT_graphics);
+	assert(type < m_queues.size());
 	return m_queues[type];
 }
 
@@ -121,7 +140,42 @@ void VulkanCommandQueueDispatcher::PresentQueue(QueueType type, uint32_t imageIn
 	VK_CHECK(vkQueuePresentKHR(m_queues[type].queue, &presentInfo));
 }
 
-uint32_t VulkanCommandQueueDispatcher::TestFamilQueueyIndex(uint8_t queueFlags, VkPhysicalDevice physicalDevice){
+void VulkanCommandQueueDispatcher::CopyBuffer(const BufferPtr &srcBuffer, const BufferPtr &dstBuffer) const{
+	VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_queues[QT_graphics].commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(r_device, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = srcBuffer.offset;
+	copyRegion.dstOffset = dstBuffer.offset;
+	copyRegion.size = srcBuffer.size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer.bufferRef, dstBuffer.bufferRef, 1, &copyRegion);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(m_queues[QT_graphics].queue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(m_queues[QT_graphics].queue);
+
+	vkFreeCommandBuffers(r_device, m_queues[QT_graphics].commandPool, 1, &commandBuffer);
+}
+
+uint32_t VulkanCommandQueueDispatcher::TestFamilQueueyIndex(VkPhysicalDevice physicalDevice, uint8_t queueFlags, uint8_t queueNotFlags){
 	uint32_t queueCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, 0);
 
@@ -129,7 +183,7 @@ uint32_t VulkanCommandQueueDispatcher::TestFamilQueueyIndex(uint8_t queueFlags, 
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queues.data());
 
 	for (uint32_t i = 0; i < queueCount; ++i)
-		if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if ((queues[i].queueFlags & queueFlags) && !(queues[i].queueFlags & queueNotFlags))
 			return i;
 
 	return VK_QUEUE_FAMILY_IGNORED;

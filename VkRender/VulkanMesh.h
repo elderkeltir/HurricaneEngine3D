@@ -9,8 +9,7 @@
 #include<vector>
 
 class VulkanMemoryManager;
-
-
+class VulkanCommandQueueDispatcher;
 
 class VulkanMesh : public iface::RenderMesh{
 public:
@@ -31,7 +30,7 @@ public:
 
     VulkanMesh();
     ~VulkanMesh();
-    void Initialize(const char *path, VulkanMemoryManager * memoryMgr, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
+    void Initialize(const char *path, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
     void Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex);
 private:
     bool ParseObj(const char* path); // for now let it be here, move to imported/mesh manager instead at some future pass
@@ -44,6 +43,7 @@ private:
 
     BufferPtr m_vBuffPtr;
     BufferPtr m_iBuffPtr;
+    BufferPtr m_vsBuffPtr;
 
     std::vector<BufferPtr> m_uniformBuffers;
     std::vector<VkDescriptorSet> m_descriptorSets;

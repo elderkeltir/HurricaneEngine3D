@@ -20,7 +20,13 @@ endif ()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
+# if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang") // strange vector behavior?
+#     set(CMAKE_BUILD_TYPE "Debug")
+#     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+# elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
+# endif()
+
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${ROOT_FOLDER}/include)

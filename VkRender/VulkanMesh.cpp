@@ -1,5 +1,6 @@
 #include "VulkanMesh.h"
 #include "VulkanMemoryManager.h"
+#include "VulkanCommandQueueDispatcher.h"
 
 #include "meshoptimizer.h"
 #pragma warning(disable : 4996)
@@ -18,7 +19,7 @@ VulkanMesh::~VulkanMesh(){
 
 }
 
-void VulkanMesh::Initialize(const char *path, VulkanMemoryManager * memoryMgr, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
+void VulkanMesh::Initialize(const char *path, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
     assert(ParseObj(path));
     r_device = device;
     
@@ -30,12 +31,18 @@ void VulkanMesh::Initialize(const char *path, VulkanMemoryManager * memoryMgr, V
     m_iBuffPtr = memoryMgr->AllocateBuffer(m_indices.size() * sizeof(uint32_t), VulkanMemoryManager::BufferUsageType::BUT_index_buffer);
     m_iBuffPtr.Validate();
 
+	m_vsBuffPtr = memoryMgr->AllocateBuffer(m_vertices.size() * sizeof(Vertex), VulkanMemoryManager::BufferUsageType::BUT_transfer_src);
+    m_vsBuffPtr.Validate();
+
 	// load vertex, index data to memory
     void* vData = 0;
-	VK_CHECK(vkMapMemory(r_device, m_vBuffPtr.memoryRef, m_vBuffPtr.offset, m_vBuffPtr.size, 0, &vData));
+	VK_CHECK(vkMapMemory(r_device, m_vsBuffPtr.memoryRef, m_vsBuffPtr.offset, m_vsBuffPtr.size, 0, &vData));
     assert(vData);
     memcpy(vData, m_vertices.data(), m_vertices.size() * sizeof(Vertex));
-    vkUnmapMemory(r_device, m_vBuffPtr.memoryRef);
+    vkUnmapMemory(r_device, m_vsBuffPtr.memoryRef);
+
+	// copy from staging buffer to vertex
+	queueDispatcher->CopyBuffer(m_vsBuffPtr, m_vBuffPtr);
 
     void* iData = 0;
 	VK_CHECK(vkMapMemory(r_device, m_iBuffPtr.memoryRef, m_iBuffPtr.offset, m_iBuffPtr.size, 0, &iData));
