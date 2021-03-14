@@ -263,7 +263,7 @@ void VulkanMesh::LoadTexture(VulkanMemoryManager * memoryMgr, VulkanCommandQueue
 
 	VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 
-	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled, VK_IMAGE_ASPECT_COLOR_BIT);
+	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled, VK_IMAGE_ASPECT_COLOR_BIT, true);
 
 	queueDispatcher->TransitionImageLayout(m_imagePtr.imageRef, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	queueDispatcher->CopyBufferToImage(m_tsBuffPtr, m_imagePtr.imageRef, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));

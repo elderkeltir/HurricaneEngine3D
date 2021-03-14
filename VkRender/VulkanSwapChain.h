@@ -14,9 +14,9 @@ public:
     VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, VulkanMemoryManager* memoryMgr, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize);
     ~VulkanSwapChain();
 
-    void InitializeSwapChain();
+    void InitializeSwapChain(bool recreate = false);
     void ResizeOnNeed(uint32_t &w, uint32_t &h);
-    void Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers) const;
+    void Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers, ImagePtr &depthBuffer) const;
 
     VkSwapchainKHR& GetSwapChain();
     uint32_t GetWidth() const;

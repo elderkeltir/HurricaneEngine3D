@@ -21,11 +21,24 @@ VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice devic
 }
 
 VulkanSwapChain::~VulkanSwapChain(){
-	Destroy(m_swapChain, m_imageViews, m_framebuffers);
+	Destroy(m_swapChain, m_imageViews, m_framebuffers, m_depthBuffer);
 }
 
-void VulkanSwapChain::InitializeSwapChain(){
-	CreateSwapChain();
+void VulkanSwapChain::InitializeSwapChain(bool recreate){
+	VkSwapchainKHR oldSwapchain = 0;
+	std::vector<VkImageView> imageViews;
+	std::vector<VkFramebuffer> framebuffers;
+	ImagePtr depthBuffer;
+
+	if (recreate) {
+		oldSwapchain = m_swapChain;
+		imageViews = m_imageViews;
+		framebuffers = m_framebuffers;
+		depthBuffer.imageRef = m_depthBuffer.imageRef;
+		depthBuffer.imageView = m_depthBuffer.imageView;
+		depthBuffer.memoryRef = m_depthBuffer.memoryRef;
+	}
+	CreateSwapChain(oldSwapchain);
 	assert(m_swapChain);
 
 	VK_CHECK(vkGetSwapchainImagesKHR(r_device, m_swapChain, &m_imageCount, 0));
@@ -42,8 +55,8 @@ void VulkanSwapChain::InitializeSwapChain(){
 	}
 
 	// depth buffer
-	m_depthBuffer = r_memoryMgr->CreateImage(m_width, m_height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
-
+	m_depthBuffer = r_memoryMgr->CreateImage(m_width, m_height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_depth, VK_IMAGE_ASPECT_DEPTH_BIT, false);
+	m_depthBuffer.Validate();
 
 	m_framebuffers.resize(m_imageCount);
 	for (uint32_t i = 0; i < m_imageCount; ++i)
@@ -51,6 +64,11 @@ void VulkanSwapChain::InitializeSwapChain(){
 		m_framebuffers[i] = CreateFramebuffer(m_imageViews[i], m_depthBuffer.imageView);
 		assert(m_framebuffers[i]);
 	}
+
+	if (recreate) {
+		VK_CHECK(vkDeviceWaitIdle(r_device));
+		Destroy(oldSwapchain, imageViews, framebuffers, depthBuffer);
+	}	
 }
 
 void VulkanSwapChain::ResizeOnNeed(uint32_t &w, uint32_t &h){
@@ -64,27 +82,29 @@ void VulkanSwapChain::ResizeOnNeed(uint32_t &w, uint32_t &h){
 	if (m_width == newWidth && m_height == newHeight){
 		return;
 	}
+	else {
+		m_width = newWidth;
+		m_height = newHeight;
+	}
 
-	VkSwapchainKHR swapChain = m_swapChain;
-	std::vector<VkImageView> imageViews = m_imageViews;
-	std::vector<VkFramebuffer> framebuffers = m_framebuffers;
-
-
-	CreateSwapChain(swapChain);
-
-	VK_CHECK(vkDeviceWaitIdle(r_device));
-
-	Destroy(swapChain, imageViews, framebuffers);
-
-
+	InitializeSwapChain(true);
 }
 
-void VulkanSwapChain::Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers) const{
+void VulkanSwapChain::Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers, ImagePtr &depthBuffer) const{
 	for (uint32_t i = 0; i < framebuffers.size(); ++i)
 		vkDestroyFramebuffer(r_device, framebuffers[i], 0);
 
 	for (uint32_t i = 0; i < imageViews.size(); ++i)
 		vkDestroyImageView(r_device, imageViews[i], 0);
+
+	if (r_device) {
+		if (depthBuffer.imageView)
+			vkDestroyImageView(r_device, depthBuffer.imageView, nullptr);
+		if (depthBuffer.imageRef)
+			vkDestroyImage(r_device, depthBuffer.imageRef, nullptr);
+		if (depthBuffer.memoryRef)
+			vkFreeMemory(r_device, depthBuffer.memoryRef, nullptr);
+	}
 
 	vkDestroySwapchainKHR(r_device, swapChain, 0);
 }
@@ -132,7 +152,8 @@ void VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain){
 	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	createInfo.compositeAlpha = surfaceComposite;
 	createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // use VK_PRESENT_MODE_FIFO_KHR for production, but hey, I want to benchmark fps :^)
-	createInfo.oldSwapchain = oldSwapChain;
+	if (oldSwapChain)
+		createInfo.oldSwapchain = oldSwapChain;
 
 	VK_CHECK(vkCreateSwapchainKHR(r_device, &createInfo, 0, &m_swapChain));
 }
