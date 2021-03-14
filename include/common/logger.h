@@ -4,7 +4,7 @@
 #include <ctime>
 #include <chrono> 
 
-class Logger {
+class logger {
 public:
 	enum loglevel
 	{
@@ -13,12 +13,12 @@ public:
 	Logger(std::string file_name, loglevel level) : full_buffer_size (100)
 	{
 		log_level_needed = level;
-		out.open(file_name, std::ofstream::out | std::ofstream::trunc);
+		m_fileStream.open(file_name, std::ofstream::m_fileStream | std::ofstream::trunc);
 	}
 	~Logger()
 	{
-		out << full_buffer;
-		out.close();
+		m_fileStream << m_full_buffer;
+		m_fileStream.close();
 	}
 	const char* timenow()
 	{
@@ -36,20 +36,23 @@ public:
 			snprintf(buffer, buffer_size, word.c_str(), args...);
 			std::string wordM = buffer;
 			wordM = timenow() + wordM + "\n";
-			full_buffer = full_buffer + wordM;
-			if (full_buffer.length() >= full_buffer_size)
+			m_full_buffer = m_full_buffer + wordM;
+			if (m_full_buffer.length() >= m_full_buffer_size)
 			{
-				out << full_buffer;
-				full_buffer.clear();
+				m_fileStream << m_full_buffer;
+				m_full_buffer.clear();
 			}
 		}
-		else return;
+		else
+		{
+			return;
+		}
 	}
 
 private:
-	std::ofstream out;
-	std::string full_buffer;
-	const int full_buffer_size;
+	std::ofstream m_fileStream;
+	std::string m_full_buffer;
+	const int m_full_buffer_size;
 	loglevel log_level_needed;
 };
 
