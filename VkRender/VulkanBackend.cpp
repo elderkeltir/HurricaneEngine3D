@@ -172,10 +172,10 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
 	//std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
 #ifdef _WIN32
-	std::string obj_path = root_path.string() + "\\content\\Madara_Uchiha\\obj\\Madara_Uchiha.obj";
+	std::string obj_path = root_path.string() + "\\content\\Madara_Uchiha\\mesh\\Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "\\content\\Madara_Uchiha\\textures\\_Madara_texture_main_mAIN.png";
 #else
-	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/obj/Madara_Uchiha.obj";
+	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/mesh/Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 #endif //_WIN32
 
