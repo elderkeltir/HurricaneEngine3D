@@ -7,6 +7,7 @@
 #include "VulkanCommandQueueDispatcher.h"
 #include "VulkanMemoryManager.h"
 #include "VulkanMesh.h"
+#include "VulkanDescriptorSetOrginizer.h"
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -73,7 +74,8 @@ VulkanBackend::VulkanBackend():
 	m_pipelineCollection(nullptr),
 	m_shaderMgr(nullptr),
 	m_cmdQueueDispatcher(nullptr),
-	m_memoryMgr(nullptr)
+	m_memoryMgr(nullptr),
+	m_descriptorSetOrganizer(nullptr)
 {
 }
 
@@ -81,6 +83,9 @@ VulkanBackend::~VulkanBackend(){
 	// TODO: replace allocations with intrusive ptr when guys will implement it
 	delete m_cmdQueueDispatcher;
 	m_cmdQueueDispatcher = nullptr;
+	m_meshes.clear(); // TODO: may remove after fix for mesh destructor
+	delete m_descriptorSetOrganizer;
+	m_descriptorSetOrganizer = nullptr;
 	delete m_memoryMgr;
 	m_memoryMgr = nullptr;
 	delete m_pipelineCollection;
@@ -94,6 +99,7 @@ VulkanBackend::~VulkanBackend(){
 #ifdef _DEBUG
 	vkDestroyDebugReportCallbackEXT(m_instance, gDdebugCallback, 0);
 #endif
+
 	vkDestroyDevice(m_device, 0);
 	vkDestroyInstance(m_instance, 0);
 }
@@ -147,26 +153,41 @@ void VulkanBackend::Initialize(const char * rootFolder){
 
 	// Create Graphic Pipeline
 	m_pipelineCollection = new VulkanPipelineCollection;
-	m_pipelineCollection->Initialize(m_device, m_shaderMgr, m_surface);
+	m_pipelineCollection->Initialize(m_device, m_shaderMgr, m_surface, m_bufferSize);
+
+	// memory mgr
+	m_memoryMgr = new VulkanMemoryManager;
+	m_memoryMgr->Initialize(m_physicalDevice, m_device);
 
 	// Create SwapChain
 	uint32_t windowWidth = 0, windowHeight = 0;
 	m_surface->GetWindowsExtent(windowWidth, windowHeight);
 	assert(!!windowWidth && !!windowHeight);
-	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
+	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
 	m_swapChain->InitializeSwapChain();
 
-	m_memoryMgr = new VulkanMemoryManager;
-	m_memoryMgr->Initialize(m_physicalDevice, m_device);
+	// Descriptor sets
+	m_descriptorSetOrganizer = new VulkanDescriptorSetOrginizer;
+	m_descriptorSetOrganizer->Initialize(m_device);
+
 	// TODO: render scene? how to store meshes(vertex + index + UBO + texture) in render backend?
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
-	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
+
+	// TODO: as is unless we implement vfs
+#ifdef _WIN32
+	std::string obj_path = root_path.string() + "\\content\\Madara_Uchiha\\mesh\\Madara_Uchiha.obj";
+	std::string texturePath = root_path.string() + "\\content\\Madara_Uchiha\\textures\\_Madara_texture_main_mAIN.png";
+#else
+	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/mesh/Madara_Uchiha.obj";
+	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
+#endif //_WIN32
+
 	VulkanMesh mesh;
-	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_device);
-	m_meshes.push_back(mesh);
+	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
+	m_meshes.push_back(std::move(mesh));
 }
 
-void VulkanBackend::Render(){
+void VulkanBackend::Render(float dt){
 	if (m_surface->PollWindowEvents())
 	{
 		uint32_t width = 0u, height = 0u;
@@ -175,7 +196,7 @@ void VulkanBackend::Render(){
 		uint32_t nextImg_idx = m_swapChain->AcquireNextImage(m_cmdQueueDispatcher->GetAquireSemaphore());
 		VkCommandBuffer commandBuffer = m_cmdQueueDispatcher->GetCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		m_cmdQueueDispatcher->BeginCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
-		m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx);
+		//m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx); // TODO: clean up? we can do transactions using render pass dependency. which one is better?
 		m_pipelineCollection->BeginRenderPass(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh, m_swapChain->GetFB(nextImg_idx), width, height);
 
 		// TODO: move this somewhere later
@@ -187,11 +208,11 @@ void VulkanBackend::Render(){
 		m_pipelineCollection->BindPipeline(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh);
 
 		for(VulkanMesh &mesh : m_meshes){
-			mesh.Render(commandBuffer);
+			mesh.Render(dt, commandBuffer, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).layout, nextImg_idx);
 		}
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);
-		m_swapChain->BindRenderEndBarrier(commandBuffer, nextImg_idx);
+		//m_swapChain->BindRenderEndBarrier(commandBuffer, nextImg_idx);
 		m_cmdQueueDispatcher->EndCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 
 		m_cmdQueueDispatcher->SubmitQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
@@ -247,43 +268,55 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 	VkPhysicalDevice discrete = 0;
 	VkPhysicalDevice fallback = 0;
 
-	for (uint32_t i = 0; i < physicalDevices.size(); ++i)
-	{
+	for (uint32_t i = 0; i < physicalDevices.size(); ++i) {
+		bool graphicsSupported = false;
+		bool transferSupported = false;
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(physicalDevices[i], &props);
 
+		// TODO: save somewhere
+		VkDeviceSize alignment = props.limits.minUniformBufferOffsetAlignment;
+
 		printf("GPU%d: %s\n", i, props.deviceName);
-
-		uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(VulkanCommandQueueDispatcher::QueueType::QT_graphics, physicalDevices[i]);
-		if (familyIndex == VK_QUEUE_FAMILY_IGNORED)
-			continue;
-
-		auto res = glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex);
-		if (!res)
-			continue;
-
-		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
+			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_GRAPHICS_BIT);
+			if (familyIndex != VK_QUEUE_FAMILY_IGNORED)
+			{
+				if (glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex))
+				{
+					graphicsSupported = true;
+				}
+			}
+		}
+		{
+			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+			if (familyIndex != VK_QUEUE_FAMILY_IGNORED)
+			{
+				if (glfwGetPhysicalDevicePresentationSupport(m_instance, physicalDevices[i], familyIndex))
+				{
+					transferSupported = true;
+				}
+			}
+		}
+
+		if (!discrete && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && graphicsSupported && transferSupported) {
 			discrete = physicalDevices[i];
 		}
 
-		if (!fallback)
-		{
+		if (!fallback && graphicsSupported && transferSupported) {
 			fallback = physicalDevices[i];
 		}
 	}
 
 	VkPhysicalDevice result = discrete ? discrete : fallback;
 
-	if (result)
-	{
+	if (result) {
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(result, &props);
 
 		printf("Selected GPU %s\n", props.deviceName);
 	}
-	else
-	{
+	else {
 		printf("ERROR: No GPUs found\n");
 	}
 
@@ -292,11 +325,17 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 
 void VulkanBackend::CreateDevice(){
 	float queuePriorities[] = { 1.0f };
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(2);
 
-	VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-	queueInfo.queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex;
-	queueInfo.queueCount = 1;
-	queueInfo.pQueuePriorities = queuePriorities;
+	queueCreateInfos[0] = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+	queueCreateInfos[0].queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex;
+	queueCreateInfos[0].queueCount = 1;
+	queueCreateInfos[0].pQueuePriorities = queuePriorities;
+
+	queueCreateInfos[1] = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+	queueCreateInfos[1].queueFamilyIndex = m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_transfer).familyQueueIndex;
+	queueCreateInfos[1].queueCount = 1;
+	queueCreateInfos[1].pQueuePriorities = queuePriorities;
 
 	const char* extensions[] =
 	{
@@ -308,11 +347,17 @@ void VulkanBackend::CreateDevice(){
 	};
 
 	VkDeviceCreateInfo createInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	createInfo.queueCreateInfoCount = 1;
-	createInfo.pQueueCreateInfos = &queueInfo;
+	createInfo.queueCreateInfoCount = queueCreateInfos.size();
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
 	createInfo.ppEnabledExtensionNames = extensions;
 	createInfo.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
+
+	// TODO: shortcut. we need to check is it supported vkGetPhysicalDeviceFeatures
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+	createInfo.pEnabledFeatures = &deviceFeatures;
 
 	VK_CHECK(vkCreateDevice(m_physicalDevice, &createInfo, 0, &m_device));
 }

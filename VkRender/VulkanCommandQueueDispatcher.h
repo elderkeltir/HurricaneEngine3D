@@ -7,21 +7,13 @@
 
 #include <vector>
 
-// Modify QueueFamilyIndices and findQueueFamilies to explicitly look for a queue family with the VK_QUEUE_TRANSFER_BIT bit, but not the VK_QUEUE_GRAPHICS_BIT.
-// Modify createLogicalDevice to request a handle to the transfer queue
-// Create a second command pool for command buffers that are submitted on the transfer queue family
-// Change the sharingMode of resources to be VK_SHARING_MODE_CONCURRENT and specify both the graphics and transfer queue families
-// Submit any transfer commands like vkCmdCopyBuffer (which we'll be using in this chapter) to the transfer queue instead of the graphics queue
-
 class VulkanSwapChain;
 
 class VulkanCommandQueueDispatcher : public iface::RenderCommandQueueDispatcher{
 public:
     enum QueueType{
-        QT_graphics,
-        QT_compute,
-        QT_transfer,
-        QT_size
+        QT_graphics = 0,
+        QT_transfer = 1 // TODO: Not used for now. it's not 100% win technique, only win on discrete gpu. will implement later
     };
     struct GQueue{
         uint32_t familyQueueIndex;
@@ -29,7 +21,7 @@ public:
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> commandBuffers; // Use L * T + N pools. (L = the number of buffered frames, T = the number of threads which record command buffers, N = extra pools for secondary command buffers).
         std::vector<VkFence> cmdBufferFences;
-        GQueue() : familyQueueIndex(0), queue(nullptr), commandPool(nullptr) {}
+        GQueue() : familyQueueIndex(~0u), queue(nullptr), commandPool(nullptr) {}
     };
 public:
     VulkanCommandQueueDispatcher(VkPhysicalDevice physicalDevice);
@@ -44,12 +36,17 @@ public:
     void EndCommandBuffer(QueueType type, uint32_t commandBufferIndex);
     void SubmitQueue(QueueType type, uint32_t commandBufferIndex);
     void PresentQueue(QueueType type, uint32_t imageIndex, VulkanSwapChain * swapChain);
+    void CopyBuffer(const BufferPtr &srcBuffer, const BufferPtr &dstBuffer) const;
+    void CopyBufferToImage(const BufferPtr &buffer, VkImage image, uint32_t width, uint32_t height) const;
+    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
-    static uint32_t TestFamilQueueyIndex(uint8_t queueFlags /*VkQueueFlagBits*/, VkPhysicalDevice physicalDevice);
+    static uint32_t TestFamilQueueyIndex(VkPhysicalDevice physicalDevice, uint8_t queueFlags /*VkQueueFlagBits*/, uint8_t queueNotFlags = 0 /*VkQueueFlagBits*/);
 private:
     VkSemaphore CreateSemaphore() const;
     VkCommandPool CreateCommandPool(uint32_t familyIndex) const;
     VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) const;
+    VkCommandBuffer BeginSingleTimeCommands() const;
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     
     std::vector<GQueue> m_queues;
     VkSemaphore m_acquireSemaphore;

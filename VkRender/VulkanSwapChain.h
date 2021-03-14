@@ -7,15 +7,16 @@
 #include "render_utils.h"
 
 class VulkanSurface;
+class VulkanMemoryManager;
 
 class VulkanSwapChain{
 public:
-    VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize);
+    VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, VulkanMemoryManager* memoryMgr, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize);
     ~VulkanSwapChain();
 
-    void InitializeSwapChain();
+    void InitializeSwapChain(bool recreate = false);
     void ResizeOnNeed(uint32_t &w, uint32_t &h);
-    void Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers) const;
+    void Destroy(VkSwapchainKHR swapChain, std::vector<VkImageView> &imageViews, std::vector<VkFramebuffer> &framebuffers, ImagePtr &depthBuffer) const;
 
     VkSwapchainKHR& GetSwapChain();
     uint32_t GetWidth() const;
@@ -27,9 +28,12 @@ public:
     uint32_t AcquireNextImage(VkSemaphore acquireSemaphore);
     void BindRenderStartBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void BindRenderEndBarrier(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+    VulkanSwapChain(VulkanSwapChain&) = delete;
+    VulkanSwapChain& operator=(VulkanSwapChain&) = delete;
 private:
     void CreateSwapChain(VkSwapchainKHR oldSwapChain = nullptr);
-    VkFramebuffer CreateFramebuffer(VkImageView imageView) const;
+    VkFramebuffer CreateFramebuffer(VkImageView imageView, VkImageView depthImageView) const;
     VkImageView CreateImageView(VkImage image) const;
     VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const;
 private:
@@ -38,6 +42,7 @@ private:
 	std::vector<VkImage> m_images;
 	std::vector<VkImageView> m_imageViews;
 	std::vector<VkFramebuffer> m_framebuffers;
+    ImagePtr m_depthBuffer;
 
 	uint32_t m_width;
     uint32_t m_height;
@@ -47,6 +52,7 @@ private:
     VkPhysicalDevice r_physicalDevice;
     VkDevice r_device;
     VulkanSurface * r_surface;
+    VulkanMemoryManager* r_memoryMgr;
     uint32_t r_familyIndex;
     VkRenderPass r_renderPass;
     

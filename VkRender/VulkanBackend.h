@@ -25,6 +25,7 @@ class VulkanShaderManager;
 class VulkanCommandQueueDispatcher;
 class VulkanMesh;
 class VulkanMemoryManager;
+class VulkanDescriptorSetOrginizer;
 
 DEFINE_HANDLE(VkPhysicalDevice)
 DEFINE_HANDLE(VkInstance)
@@ -37,9 +38,11 @@ public:
     // Implementing RenderBackend interface
 public:
     void Initialize(const char * rootFolder) override final;
-    void Render() override final;
+    void Render(float dt) override final;
     bool IsRunning() override final;
 
+    VulkanBackend(VulkanBackend&) = delete;
+    VulkanBackend operator=(VulkanBackend&) = delete;
 private:
     void CreateInstance();
     VkPhysicalDevice PickPhysicalDevice(const std::vector<VkPhysicalDevice> &physicalDevices) const;
@@ -57,6 +60,7 @@ private:
     VulkanShaderManager * m_shaderMgr;
     VulkanCommandQueueDispatcher * m_cmdQueueDispatcher;
     VulkanMemoryManager * m_memoryMgr;
+    VulkanDescriptorSetOrginizer * m_descriptorSetOrganizer;
 
     char m_rootFolder[255];
     std::vector<VulkanMesh> m_meshes; // TODO: move to mesh manager/pool in a future pass

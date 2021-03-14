@@ -1,0 +1,54 @@
+# Blender MTL File: 'Madara_body_PC_AFTER_TOON_SHADER.blend'
+# Material Count: 5
+
+newmtl Blender_Render_Madara_Eyes
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.160000 0.160000 0.160000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Kd F:\IDM\DOWN\blender-2.79b-windows64\blender-2.79b-windows64\blendfiles\Characters\Character_2\Sharingan_texture.jpg
+
+newmtl Blender_Render_Madara_Eyes_NONE
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.160000 0.160000 0.160000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Kd F:\\IDM\\DOWN\\blender-2.79b-windows64\\blender-2.79b-windows64\\blendfiles\\Characters\\Character_2\\Sharingan_texture.jpg
+
+newmtl Blender_Render_Madara_Material
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.004573 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Kd F:\IDM\DOWN\blender-2.79b-windows64\blender-2.79b-windows64\blendfiles\Characters\Character_2\_Madara_texture_main_mAIN.png
+
+newmtl Blender_Render_Madara_Material_NONE
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.004573 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Kd F:\\IDM\\DOWN\\blender-2.79b-windows64\\blender-2.79b-windows64\\blendfiles\\Characters\\Character_2\\_Madara_texture_main_mAIN.png
+
+newmtl None
+Ns 0
+Ka 0.000000 0.000000 0.000000
+Kd 0.8 0.8 0.8
+Ks 0.8 0.8 0.8
+d 1
+illum 2
