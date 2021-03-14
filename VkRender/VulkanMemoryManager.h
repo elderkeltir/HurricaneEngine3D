@@ -15,6 +15,7 @@ public:
             BUT_transfer_src = 1 << 3,
             BUT_transfer_dst = 1 << 4,
             BUT_sampled = 1 << 5,
+            BUT_depth = 1 << 6,
     };
     enum MemoryPropertyFlag{
         MPF_host_visible = 1 << 0,
@@ -33,7 +34,7 @@ public:
 
     void Initialize(VkPhysicalDevice physicalDevice, VkDevice device);
     BufferPtr AllocateBuffer(size_t size, uint32_t usageType); //TODO: deallocate // track empty spots using same offset+size maybe for start
-    ImagePtr CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage);
+    ImagePtr CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage, VkImageAspectFlags aspect);
 
     VulkanMemoryManager();
     ~VulkanMemoryManager();

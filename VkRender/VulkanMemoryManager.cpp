@@ -11,6 +11,7 @@ uint32_t GetVulkanBufferUsageFlags(uint32_t myFlags){
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_transfer_src) vulkanFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_transfer_dst) vulkanFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_sampled) vulkanFlags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_depth) vulkanFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
     return vulkanFlags;
 }
@@ -23,7 +24,7 @@ uint32_t GetMyBufferUsageFlags(uint32_t vulkanFlags){
     if (vulkanFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_transfer_src;
     if (vulkanFlags & VK_BUFFER_USAGE_TRANSFER_DST_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_transfer_dst;
     if (vulkanFlags & VK_IMAGE_USAGE_SAMPLED_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_sampled;
-    
+    if (vulkanFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_depth;
 
     return myFlags;
 }
@@ -145,9 +146,9 @@ VulkanMemoryManager::BufferSet VulkanMemoryManager::CreateBufferSet(uint32_t buf
     return bufferSet;
 }
 
-ImagePtr VulkanMemoryManager::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage) {
+ImagePtr VulkanMemoryManager::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage, VkImageAspectFlags aspect) {
     ImagePtr imagePtr;
-    imagePtr.usageType = GetVulkanBufferUsageFlags(usage);;
+    imagePtr.usageType = GetVulkanBufferUsageFlags(usage);
 
     // image
     VkImageCreateInfo imageInfo{};
@@ -188,7 +189,7 @@ ImagePtr VulkanMemoryManager::CreateImage(uint32_t width, uint32_t height, VkFor
     viewInfo.image = imagePtr.imageRef;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.aspectMask = aspect;
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;

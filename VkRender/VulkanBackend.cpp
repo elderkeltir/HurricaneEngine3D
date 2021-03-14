@@ -155,22 +155,25 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	m_pipelineCollection = new VulkanPipelineCollection;
 	m_pipelineCollection->Initialize(m_device, m_shaderMgr, m_surface, m_bufferSize);
 
+	// memory mgr
+	m_memoryMgr = new VulkanMemoryManager;
+	m_memoryMgr->Initialize(m_physicalDevice, m_device);
+
 	// Create SwapChain
 	uint32_t windowWidth = 0, windowHeight = 0;
 	m_surface->GetWindowsExtent(windowWidth, windowHeight);
 	assert(!!windowWidth && !!windowHeight);
-	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
+	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
 	m_swapChain->InitializeSwapChain();
 
 	// Descriptor sets
 	m_descriptorSetOrganizer = new VulkanDescriptorSetOrginizer;
 	m_descriptorSetOrganizer->Initialize(m_device);
 
-	m_memoryMgr = new VulkanMemoryManager;
-	m_memoryMgr->Initialize(m_physicalDevice, m_device);
 	// TODO: render scene? how to store meshes(vertex + index + UBO + texture) in render backend?
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
-	//std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
+
+	// TODO: as is unless we implement vfs
 #ifdef _WIN32
 	std::string obj_path = root_path.string() + "\\content\\Madara_Uchiha\\mesh\\Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "\\content\\Madara_Uchiha\\textures\\_Madara_texture_main_mAIN.png";
@@ -193,7 +196,7 @@ void VulkanBackend::Render(float dt){
 		uint32_t nextImg_idx = m_swapChain->AcquireNextImage(m_cmdQueueDispatcher->GetAquireSemaphore());
 		VkCommandBuffer commandBuffer = m_cmdQueueDispatcher->GetCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		m_cmdQueueDispatcher->BeginCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
-		m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx);
+		//m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx); // TODO: clean up? we can do transactions using render pass dependency. which one is better?
 		m_pipelineCollection->BeginRenderPass(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh, m_swapChain->GetFB(nextImg_idx), width, height);
 
 		// TODO: move this somewhere later
@@ -209,7 +212,7 @@ void VulkanBackend::Render(float dt){
 		}
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);
-		m_swapChain->BindRenderEndBarrier(commandBuffer, nextImg_idx);
+		//m_swapChain->BindRenderEndBarrier(commandBuffer, nextImg_idx);
 		m_cmdQueueDispatcher->EndCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 
 		m_cmdQueueDispatcher->SubmitQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);

@@ -1,13 +1,15 @@
 #include "VulkanSwapChain.h"
 
 #include "VulkanSurface.h"
+#include "VulkanMemoryManager.h"
 
 
-VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize) : 
+VulkanSwapChain::VulkanSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VulkanSurface *surface, VulkanMemoryManager* memoryMgr, uint32_t familyIndex, VkFormat format, uint32_t width, uint32_t height, VkRenderPass renderPass, const uint32_t bufferSize) :
     m_swapChain(nullptr),
 	r_physicalDevice(physicalDevice),
 	r_device(device),
 	r_surface(surface),
+	r_memoryMgr(memoryMgr),
 	r_familyIndex(familyIndex),
 	m_format(format),
 	m_width(width),
@@ -39,10 +41,14 @@ void VulkanSwapChain::InitializeSwapChain(){
 		assert(m_imageViews[i]);
 	}
 
+	// depth buffer
+	m_depthBuffer = r_memoryMgr->CreateImage(m_width, m_height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+
 	m_framebuffers.resize(m_imageCount);
 	for (uint32_t i = 0; i < m_imageCount; ++i)
 	{
-		m_framebuffers[i] = CreateFramebuffer(m_imageViews[i]);
+		m_framebuffers[i] = CreateFramebuffer(m_imageViews[i], m_depthBuffer.imageView);
 		assert(m_framebuffers[i]);
 	}
 }
@@ -131,12 +137,17 @@ void VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain){
 	VK_CHECK(vkCreateSwapchainKHR(r_device, &createInfo, 0, &m_swapChain));
 }
 
-VkFramebuffer VulkanSwapChain::CreateFramebuffer(VkImageView imageView) const
+VkFramebuffer VulkanSwapChain::CreateFramebuffer(VkImageView imageView, VkImageView depthImageView) const
 {
+	std::vector<VkImageView> attachments = {
+				imageView,
+				depthImageView
+	};
+
 	VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	createInfo.renderPass = r_renderPass;
-	createInfo.attachmentCount = 1;
-	createInfo.pAttachments = &imageView;
+	createInfo.attachmentCount = attachments.size();
+	createInfo.pAttachments = attachments.data();
 	createInfo.width = m_width;
 	createInfo.height = m_height;
 	createInfo.layers = 1;

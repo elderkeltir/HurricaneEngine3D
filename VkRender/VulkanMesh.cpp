@@ -9,6 +9,8 @@
 #define FAST_OBJ_IMPLEMENTATION
 #include <../extern/fast_obj.h>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <string>
@@ -149,7 +151,7 @@ bool VulkanMesh::ParseObj(const char* path){
 				obj->normals[gi.n * 3 + 1],
 				obj->normals[gi.n * 3 + 2],
 				obj->texcoords[gi.t * 2 + 0],
-				obj->texcoords[gi.t * 2 + 1],
+				1.f - obj->texcoords[gi.t * 2 + 1], // TODO: god damn obj rotates y!
 			};
 
 			// triangulate polygon on the fly; offset-3 is always the first polygon vertex
@@ -188,7 +190,7 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	UniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
-	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	//ubo.proj[1][1] *= -1; // hack for Vulkan
 
 	void* data;
@@ -261,7 +263,7 @@ void VulkanMesh::LoadTexture(VulkanMemoryManager * memoryMgr, VulkanCommandQueue
 
 	VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 
-	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled);
+	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	queueDispatcher->TransitionImageLayout(m_imagePtr.imageRef, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	queueDispatcher->CopyBufferToImage(m_tsBuffPtr, m_imagePtr.imageRef, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
