@@ -83,7 +83,7 @@ VulkanBackend::~VulkanBackend(){
 	// TODO: replace allocations with intrusive ptr when guys will implement it
 	delete m_cmdQueueDispatcher;
 	m_cmdQueueDispatcher = nullptr;
-		m_meshes.clear(); // TODO: may remove after fix for mesh destructor
+	m_meshes.clear(); // TODO: may remove after fix for mesh destructor
 	delete m_descriptorSetOrganizer;
 	m_descriptorSetOrganizer = nullptr;
 	delete m_memoryMgr;
