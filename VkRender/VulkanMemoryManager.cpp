@@ -63,7 +63,7 @@ void VulkanMemoryManager::Initialize(VkPhysicalDevice physicalDevice, VkDevice d
     }
 }
 
-BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, BufferUsageType usageType){
+BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, uint32_t usageType){
     // TODO: deallocation
     BufferPtr buffPtr;
     for (BufferSet &bufferSet : m_buffers){

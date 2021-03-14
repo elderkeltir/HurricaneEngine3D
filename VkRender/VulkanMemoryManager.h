@@ -32,7 +32,7 @@ public:
     };
 
     void Initialize(VkPhysicalDevice physicalDevice, VkDevice device);
-    BufferPtr AllocateBuffer(size_t size, BufferUsageType usageType); //TODO: deallocate // track empty spots using same offset+size maybe for start
+    BufferPtr AllocateBuffer(size_t size, uint32_t usageType); //TODO: deallocate // track empty spots using same offset+size maybe for start
     ImagePtr CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage);
 
     VulkanMemoryManager();
