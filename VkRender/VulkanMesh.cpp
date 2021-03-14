@@ -2,24 +2,66 @@
 #include "VulkanMemoryManager.h"
 #include "VulkanCommandQueueDispatcher.h"
 
-#include "meshoptimizer.h"
+#include <meshoptimizer.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h> // TODO: move loading image to another class. probably after vfs implementation?
 #pragma warning(disable : 4996)
 #define FAST_OBJ_IMPLEMENTATION
-#include "../extern/fast_obj.h"
+#include <../extern/fast_obj.h>
 
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <string>
 
-
-VulkanMesh::VulkanMesh(){
+VulkanMesh::VulkanMesh() : 
+	r_device(nullptr)
+{
 
 }
 
 VulkanMesh::~VulkanMesh(){
-
+	// TODO: move this to memory manager
+	if (r_device){
+		if (m_imagePtr.sampler)
+			vkDestroySampler(r_device, m_imagePtr.sampler, nullptr);
+		if (m_imagePtr.imageView)
+			vkDestroyImageView(r_device, m_imagePtr.imageView, nullptr);
+		if (m_imagePtr.imageRef)
+			vkDestroyImage(r_device, m_imagePtr.imageRef, nullptr);
+		if (m_imagePtr.memoryRef)
+			vkFreeMemory(r_device, m_imagePtr.memoryRef, nullptr);
+	}
 }
 
-void VulkanMesh::Initialize(const char *path, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
+VulkanMesh::VulkanMesh(VulkanMesh && other){
+	this->m_vertices.swap(other.m_vertices);
+	this->m_indices.swap(other.m_indices);
+	std::swap(this->m_vBuffPtr, other.m_vBuffPtr);
+	std::swap(this->m_iBuffPtr, other.m_iBuffPtr);
+	std::swap(this->m_vsBuffPtr, other.m_vsBuffPtr);
+	std::swap(this->m_tsBuffPtr, other.m_tsBuffPtr);
+	std::swap(this->m_imagePtr, other.m_imagePtr);
+	this->m_uniformBuffers.swap(other.m_uniformBuffers);
+	this->m_descriptorSets.swap(other.m_descriptorSets);
+	std::swap(this->r_device, other.r_device);
+}
+
+VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
+	this->m_vertices.swap(other.m_vertices);
+	this->m_indices.swap(other.m_indices);
+	std::swap(this->m_vBuffPtr, other.m_vBuffPtr);
+	std::swap(this->m_iBuffPtr, other.m_iBuffPtr);
+	std::swap(this->m_vsBuffPtr, other.m_vsBuffPtr);
+	std::swap(this->m_tsBuffPtr, other.m_tsBuffPtr);
+	std::swap(this->m_imagePtr, other.m_imagePtr);
+	this->m_uniformBuffers.swap(other.m_uniformBuffers);
+	this->m_descriptorSets.swap(other.m_descriptorSets);
+	std::swap(this->r_device, other.r_device);
+
+	return *this;
+}
+
+void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
     assert(ParseObj(path));
     r_device = device;
     
@@ -49,6 +91,9 @@ void VulkanMesh::Initialize(const char *path, VulkanMemoryManager * memoryMgr, V
     assert(iData);
     memcpy(iData, m_indices.data(), m_indices.size() * sizeof(uint32_t));
     vkUnmapMemory(r_device, m_iBuffPtr.memoryRef);
+
+	// texture
+	LoadTexture(memoryMgr, queueDispatcher, texturePath);
 
 	// allocate uniform buffers
 	m_uniformBuffers.resize(imageCount);
@@ -143,8 +188,8 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	UniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
-	ubo.view = ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj[1][1] *= -1; // hack for Vulkan
+	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//ubo.proj[1][1] *= -1; // hack for Vulkan
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);
@@ -170,18 +215,55 @@ void VulkanMesh::UpdateDescriptorSets(){
 		bufferInfo.offset = m_uniformBuffers[i].offset;
 		bufferInfo.range = m_uniformBuffers[i].size;
 
-		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		descriptorWrite.dstSet = m_descriptorSets[i];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_imagePtr.imageView;
+		imageInfo.sampler = m_imagePtr.sampler;
 
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrite.descriptorCount = 1;
+		std::vector<VkWriteDescriptorSet> descriptorWrites(2);
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = m_descriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &bufferInfo;
+		descriptorWrites[0].pImageInfo = nullptr;
+		descriptorWrites[0].pTexelBufferView = nullptr;
 
-		descriptorWrite.pBufferInfo = &bufferInfo;
-		descriptorWrite.pImageInfo = nullptr;
-		descriptorWrite.pTexelBufferView = nullptr;
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = m_descriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(r_device, 1, &descriptorWrite, 0, nullptr); // Seems you can'not send array of writes if they all are set to the same bindings
+		vkUpdateDescriptorSets(r_device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr); // Seems you can'not send array of writes if they all are set to the same bindings
 	}
 }
+
+void VulkanMesh::LoadTexture(VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, const char *texturePath){
+	int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(texturePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+	assert(pixels);
+
+	m_tsBuffPtr = memoryMgr->AllocateBuffer(imageSize, VulkanMemoryManager::BufferUsageType::BUT_transfer_src);
+    m_tsBuffPtr.Validate();
+
+	void* data;
+	vkMapMemory(r_device, m_tsBuffPtr.memoryRef, m_tsBuffPtr.offset, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+	vkUnmapMemory(r_device, m_tsBuffPtr.memoryRef);
+
+	stbi_image_free(pixels);
+
+	VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+
+	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled);
+
+	queueDispatcher->TransitionImageLayout(m_imagePtr.imageRef, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	queueDispatcher->CopyBufferToImage(m_tsBuffPtr, m_imagePtr.imageRef, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	queueDispatcher->TransitionImageLayout(m_imagePtr.imageRef, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}	

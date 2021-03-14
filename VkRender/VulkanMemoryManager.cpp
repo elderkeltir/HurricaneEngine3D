@@ -10,6 +10,7 @@ uint32_t GetVulkanBufferUsageFlags(uint32_t myFlags){
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer) vulkanFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_transfer_src) vulkanFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_transfer_dst) vulkanFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    if (myFlags & VulkanMemoryManager::BufferUsageType::BUT_sampled) vulkanFlags |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
     return vulkanFlags;
 }
@@ -21,7 +22,7 @@ uint32_t GetMyBufferUsageFlags(uint32_t vulkanFlags){
     if (vulkanFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer;
     if (vulkanFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_transfer_src;
     if (vulkanFlags & VK_BUFFER_USAGE_TRANSFER_DST_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_transfer_dst;
-    
+    if (vulkanFlags & VK_IMAGE_USAGE_SAMPLED_BIT) myFlags |= VulkanMemoryManager::BufferUsageType::BUT_sampled;
     
 
     return myFlags;
@@ -140,4 +141,82 @@ VulkanMemoryManager::BufferSet VulkanMemoryManager::CreateBufferSet(uint32_t buf
 	VK_CHECK(vkBindBufferMemory(r_device, bufferSet.aggregatedBuffer, bufferSet.aggregatedMemory, 0));
 
     return bufferSet;
+}
+
+ImagePtr VulkanMemoryManager::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage) {
+    ImagePtr imagePtr;
+    imagePtr.usageType = GetVulkanBufferUsageFlags(usage);;
+
+    // image
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = static_cast<uint32_t>(width);
+    imageInfo.extent.height = static_cast<uint32_t>(height);
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = format;
+    imageInfo.tiling = tiling;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = imagePtr.usageType;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    VK_CHECK(vkCreateImage(r_device, &imageInfo, nullptr, &imagePtr.imageRef));    
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(r_device, imagePtr.imageRef, &memRequirements);
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(r_physicalDevice, &memoryProperties);
+    imagePtr.size = memRequirements.size;
+
+    // memory
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = SelectMemoryType(memoryProperties, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    VK_CHECK(vkAllocateMemory(r_device, &allocInfo, nullptr, &imagePtr.memoryRef));
+
+    vkBindImageMemory(r_device, imagePtr.imageRef, imagePtr.memoryRef, 0);
+
+    // image view
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = imagePtr.imageRef;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+    VK_CHECK(vkCreateImageView(r_device, &viewInfo, nullptr, &imagePtr.imageView));
+
+    // sampler
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(r_physicalDevice, &properties); // TODO: move to backend. get all the necessary props there and pass backend as 1st arg to every constructor
+
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    VK_CHECK(vkCreateSampler(r_device, &samplerInfo, nullptr, &imagePtr.sampler));
+
+    return imagePtr;
 }

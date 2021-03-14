@@ -83,6 +83,7 @@ VulkanBackend::~VulkanBackend(){
 	// TODO: replace allocations with intrusive ptr when guys will implement it
 	delete m_cmdQueueDispatcher;
 	m_cmdQueueDispatcher = nullptr;
+		m_meshes.clear(); // TODO: may remove after fix for mesh destructor
 	delete m_descriptorSetOrganizer;
 	m_descriptorSetOrganizer = nullptr;
 	delete m_memoryMgr;
@@ -98,6 +99,7 @@ VulkanBackend::~VulkanBackend(){
 #ifdef _DEBUG
 	vkDestroyDebugReportCallbackEXT(m_instance, gDdebugCallback, 0);
 #endif
+
 	vkDestroyDevice(m_device, 0);
 	vkDestroyInstance(m_instance, 0);
 }
@@ -168,10 +170,12 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	m_memoryMgr->Initialize(m_physicalDevice, m_device);
 	// TODO: render scene? how to store meshes(vertex + index + UBO + texture) in render backend?
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
-	std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
+	//std::string obj_path = root_path.string() + "/extern/meshoptimizer/demo/pirate.obj";
+	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/obj/Madara_Uchiha.obj";
+	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 	VulkanMesh mesh;
-	mesh.Initialize(obj_path.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
-	m_meshes.push_back(mesh);
+	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
+	m_meshes.push_back(std::move(mesh));
 }
 
 void VulkanBackend::Render(float dt){
@@ -336,6 +340,12 @@ void VulkanBackend::CreateDevice(){
 
 	createInfo.ppEnabledExtensionNames = extensions;
 	createInfo.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
+
+	// TODO: shortcut. we need to check is it supported vkGetPhysicalDeviceFeatures
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+	createInfo.pEnabledFeatures = &deviceFeatures;
 
 	VK_CHECK(vkCreateDevice(m_physicalDevice, &createInfo, 0, &m_device));
 }

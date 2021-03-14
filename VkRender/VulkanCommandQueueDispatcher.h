@@ -37,12 +37,16 @@ public:
     void SubmitQueue(QueueType type, uint32_t commandBufferIndex);
     void PresentQueue(QueueType type, uint32_t imageIndex, VulkanSwapChain * swapChain);
     void CopyBuffer(const BufferPtr &srcBuffer, const BufferPtr &dstBuffer) const;
+    void CopyBufferToImage(const BufferPtr &buffer, VkImage image, uint32_t width, uint32_t height) const;
+    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
     static uint32_t TestFamilQueueyIndex(VkPhysicalDevice physicalDevice, uint8_t queueFlags /*VkQueueFlagBits*/, uint8_t queueNotFlags = 0 /*VkQueueFlagBits*/);
 private:
     VkSemaphore CreateSemaphore() const;
     VkCommandPool CreateCommandPool(uint32_t familyIndex) const;
     VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) const;
+    VkCommandBuffer BeginSingleTimeCommands() const;
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     
     std::vector<GQueue> m_queues;
     VkSemaphore m_acquireSemaphore;

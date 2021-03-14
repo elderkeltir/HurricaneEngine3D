@@ -30,13 +30,20 @@ public:
 
     VulkanMesh();
     ~VulkanMesh();
-    void Initialize(const char *path, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
+    void Initialize(const char *path, const char *texturePath, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
     void Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex);
+
+    VulkanMesh(VulkanMesh&&);
+    VulkanMesh& operator=(VulkanMesh&&);
+
+    VulkanMesh(const VulkanMesh&) = delete;
+    VulkanMesh& operator=(const VulkanMesh&) = delete;
 private:
     bool ParseObj(const char* path); // for now let it be here, move to imported/mesh manager instead at some future pass
     void UpdateUniformBuffers(float dt, uint32_t imageIndex);
     void CreateDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
     void UpdateDescriptorSets();
+    void LoadTexture(VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, const char *texturePath);
 
     std::vector<Vertex> m_vertices;
 	std::vector<uint32_t> m_indices;
@@ -44,6 +51,8 @@ private:
     BufferPtr m_vBuffPtr;
     BufferPtr m_iBuffPtr;
     BufferPtr m_vsBuffPtr;
+    BufferPtr m_tsBuffPtr;
+    ImagePtr m_imagePtr;
 
     std::vector<BufferPtr> m_uniformBuffers;
     std::vector<VkDescriptorSet> m_descriptorSets;
