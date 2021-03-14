@@ -70,13 +70,15 @@ BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, BufferUsageType usage
         if (bufferSet.bufferType & GetVulkanBufferUsageFlags(usageType)){
             assert(bufferSet.size - bufferSet.nextFreeSlice > size);
 
+            uint32_t actual_size = (size / 16) * 16; // TODO: props.limits.minUniformBufferOffsetAlignment is 16 now
+
             buffPtr.bufferRef = bufferSet.aggregatedBuffer;
             buffPtr.memoryRef = bufferSet.aggregatedMemory;
             buffPtr.offset = bufferSet.nextFreeSlice;
-            buffPtr.size = size;
+            buffPtr.size = actual_size;
             buffPtr.usageType = usageType;
 
-            bufferSet.nextFreeSlice += size;
+            bufferSet.nextFreeSlice += actual_size;
 
             break;
         }

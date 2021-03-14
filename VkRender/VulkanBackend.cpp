@@ -271,6 +271,9 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(physicalDevices[i], &props);
 
+		// TODO: save somewhere
+		VkDeviceSize alignment = props.limits.minUniformBufferOffsetAlignment;
+
 		printf("GPU%d: %s\n", i, props.deviceName);
 		{
 			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_GRAPHICS_BIT);
