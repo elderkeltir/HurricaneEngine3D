@@ -170,4 +170,4 @@ private:
     char m_buffer[MAX_CHARACTER];
 };
 
-#endif /* StackString_h */
+#endif /* stack_string_h */
