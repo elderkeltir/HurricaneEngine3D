@@ -41,6 +41,8 @@ public:
     void Render(float dt) override final;
     bool IsRunning() override final;
 
+    VulkanBackend(VulkanBackend&) = delete;
+    VulkanBackend operator=(VulkanBackend&) = delete;
 private:
     void CreateInstance();
     VkPhysicalDevice PickPhysicalDevice(const std::vector<VkPhysicalDevice> &physicalDevices) const;
