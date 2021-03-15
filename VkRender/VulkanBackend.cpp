@@ -303,7 +303,7 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 			discrete = physicalDevices[i];
 		}
 
-		if (!fallback && graphicsSupported && transferSupported) {
+		if (!fallback && graphicsSupported) {
 			fallback = physicalDevices[i];
 		}
 	}
