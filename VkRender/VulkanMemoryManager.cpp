@@ -1,5 +1,7 @@
 #include "VulkanMemoryManager.h"
 
+#include <algorithm>
+
 static uint32_t gBufferSize = 1024u * 1024u *8u;
 static uint32_t gLocalBufferSize = 1024u * 1024u *2u;
 
@@ -71,7 +73,7 @@ BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, uint32_t usageType){
         if (bufferSet.bufferType & GetVulkanBufferUsageFlags(usageType)){
             assert(bufferSet.size - bufferSet.nextFreeSlice > size);
 
-            uint32_t actual_size = (size / 16) * 16; // TODO: props.limits.minUniformBufferOffsetAlignment is 16 now
+            uint32_t actual_size = std::max((size / 256) * 256, 256ul); // TODO: props.limits.minUniformBufferOffsetAlignment is 16 for win/linux and 256 for mac now
 
             buffPtr.bufferRef = bufferSet.aggregatedBuffer;
             buffPtr.memoryRef = bufferSet.aggregatedMemory;

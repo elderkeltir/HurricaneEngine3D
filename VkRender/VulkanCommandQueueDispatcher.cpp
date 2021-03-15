@@ -269,12 +269,18 @@ uint32_t VulkanCommandQueueDispatcher::TestFamilQueueyIndex(VkPhysicalDevice phy
 
 	std::vector<VkQueueFamilyProperties> queues(queueCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queues.data());
+	uint32_t fallback_queue_family = VK_QUEUE_FAMILY_IGNORED;
 
-	for (uint32_t i = 0; i < queueCount; ++i)
+	for (uint32_t i = 0; i < queueCount; ++i){
 		if ((queues[i].queueFlags & queueFlags) && !(queues[i].queueFlags & queueNotFlags))
 			return i;
 
-	return VK_QUEUE_FAMILY_IGNORED;
+		if (queues[i].queueFlags & queueFlags){
+			fallback_queue_family = i;
+		}
+	}
+
+	return fallback_queue_family;
 }
 
 VkSemaphore VulkanCommandQueueDispatcher::CreateSemaphore() const {
