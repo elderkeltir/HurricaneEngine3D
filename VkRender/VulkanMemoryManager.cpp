@@ -72,9 +72,15 @@ BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, uint32_t usageType){
     for (BufferSet &bufferSet : m_buffers){
         if (bufferSet.bufferType & GetVulkanBufferUsageFlags(usageType)){
             assert(bufferSet.size - bufferSet.nextFreeSlice > size);
-
-            uint32_t actual_size = std::max((size / 256) * 256, 256ul); // TODO: props.limits.minUniformBufferOffsetAlignment is 16 for win/linux and 256 for mac now
-
+#ifdef WIN32
+uint32_t actual_size = std::max((unsigned long)(size / 16ul) * 16ul, 16ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+#endif
+#ifdef LINUX
+uint32_t actual_size = std::max((size / 16) * 16, 16ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+#endif
+#ifdef APPLE
+uint32_t actual_size = std::max((size / 256) * 256, 256ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+#endif
             buffPtr.bufferRef = bufferSet.aggregatedBuffer;
             buffPtr.memoryRef = bufferSet.aggregatedMemory;
             buffPtr.offset = bufferSet.nextFreeSlice;
