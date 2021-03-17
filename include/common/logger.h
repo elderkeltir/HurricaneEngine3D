@@ -24,7 +24,7 @@ public:
 	}
 	~logger()
 	{
-		if (m_buffer.empty() == false)
+		if (!m_buffer.empty())
 		{
 			m_fileStream << m_buffer;
 		}
