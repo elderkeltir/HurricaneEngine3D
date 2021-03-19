@@ -10,7 +10,7 @@ Mac Os X
 
 Supported compilers*:
 Visual C++ (2019),
-clang(10)
+clang(11)
 
 **other compilers were not tested, try it*
 
