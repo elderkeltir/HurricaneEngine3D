@@ -1,15 +1,14 @@
 //
 //  stack_string.h
 //
-//  Created by Oleksandr Kysil on 28.02.2021.
+//  Created by Oleksandr Kysil@HurricaneEngine3D on 28.02.2021.
 //
+
+#pragma once
 
 #ifndef MAX_CHARACTER
 #define MAX_CHARACTER 256
 #endif
-
-#ifndef stack_string_h
-#define stack_string_h
 
 class stack_string {
 public:
@@ -18,14 +17,18 @@ public:
     }
     
     /*
-        Constructors
-     */
+         Constructors
+    */
     
-    stack_string() {}
+    stack_string() {
+        m_buffer[0] = '\0';
+    }
     
     // Create
-    stack_string(char* string) {
-        strcpy(m_buffer, string);
+    stack_string(char* cstring) {
+        if (strlen(cstring) <= MAX_CHARACTER) {
+            strcpy(m_buffer, cstring);
+        }
     }
     
     // Copy object
@@ -44,8 +47,8 @@ public:
     }
     
     /*
-        Operators
-     */
+         Operators
+    */
     
     const stack_string &operator=(stack_string const& other) {
         if (&other != this) {
@@ -79,41 +82,35 @@ public:
         Methods
      */
     
-    size_t find_index(const char* stackString) {
-        // Searched string shouldn't be empty
-        if (strlen(stackString) == 0) {
+    size_t find_index(const stack_string &stackString) {
+        if (strlen(stackString.m_buffer) == 0) {
             return -1;
         }
         
-        const size_t current_size_array = strlen(m_buffer);
-        const size_t substring_size_array = strlen(stackString);
+        const char* first_occurence = strstr(m_buffer, stackString.m_buffer);
         
-        for (size_t i=0; i<current_size_array; i++) {
-            for (size_t j=0; j<substring_size_array; j++) {
-                if (m_buffer[i] == stackString[j]) {
-                    return i;
-                }
-            }
+        if (first_occurence != NULL) {
+            return first_occurence-m_buffer;
         }
         
         return -1;
     }
     
-    void append(const char* cstring) {
+    void append(const stack_string &stackString) {
         const size_t current_size_array = strlen(m_buffer);
-        const size_t appended_size_array = strlen(cstring);
+        const size_t appended_size_array = strlen(stackString.m_buffer);
         
         if (appended_size_array + current_size_array + 1 > MAX_CHARACTER) {
             assert(false);
             return;
         }
         
-        strcpy(m_buffer+current_size_array, cstring);
+        strcpy(m_buffer+current_size_array, stackString.m_buffer);
     }
     
-    void insert(const size_t pos, const char * cstring) {
+    void insert(const size_t pos, const stack_string &stackString) {
         const size_t current_size_string = strlen(m_buffer);
-        const size_t appended_size_array = strlen(cstring);
+        const size_t appended_size_array = strlen(stackString.m_buffer);
         
         char temp[MAX_CHARACTER];
         
@@ -123,51 +120,25 @@ public:
         }
 
         strcpy(temp, m_buffer+pos);
-        strcpy(m_buffer+pos, cstring);
+        strcpy(m_buffer+pos, stackString.m_buffer);
         strcpy(m_buffer+pos+appended_size_array, temp);
     }
     
-    void replace(const size_t from, const size_t length, const char* cstring) {
-        strcpy(m_buffer+from, cstring);
-    }
-    
-    void erase(const size_t pos = 0, const size_t length = MAX_CHARACTER) {
-        if (pos == 0 && length == MAX_CHARACTER) {
-            // Delete whole buffer
-            m_buffer[pos] = '\0';
-        } else {
-            char pref[pos];
-            char suff[MAX_CHARACTER];
-            
-            // Clean the middle of buffer
-            for (size_t i = pos; i<=length; i++) {
-                m_buffer[i] = '\0';
-            }
-            
-            strcpy(pref, m_buffer);
-            strcpy(suff, m_buffer+pos+length);
-            
-            // Cleanup buffer
-            m_buffer[0] = '\0';
-            
-            strcpy(m_buffer, pref);
-            strcpy(m_buffer+pos,suff);
-        }
+    void replace(const size_t from, const stack_string &stackString) {
+        strcpy(m_buffer+from, stackString.m_buffer);
     }
     
     bool empty() {
-        if (sizeof(m_buffer) == 0) {
+        if (strlen(m_buffer) == 0) {
             return true;
         }
         return  false;
     }
     
     size_t lenght() {
-        return sizeof(m_buffer);
+        return strlen(m_buffer);
     }
     
 private:
     char m_buffer[MAX_CHARACTER];
 };
-
-#endif /* stack_string_h */
