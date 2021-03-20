@@ -17,9 +17,13 @@
 #include <string>
 
 VulkanMesh::VulkanMesh() : 
-	r_device(nullptr)
+	r_device(nullptr),
+	m_pipelineType(iface::RenderPipelineCollection::PipelineType::PT_size)
 {
-
+	m_color[0] = 0.7f;
+	m_color[1] = 0.5f;
+	m_color[2] = 0.2f;
+	m_color[3] = 1.f;
 }
 
 VulkanMesh::~VulkanMesh(){
@@ -47,6 +51,9 @@ VulkanMesh::VulkanMesh(VulkanMesh && other){
 	this->m_uniformBuffers.swap(other.m_uniformBuffers);
 	this->m_descriptorSets.swap(other.m_descriptorSets);
 	std::swap(this->r_device, other.r_device);
+	std::swap(this->m_pipelineType, other.m_pipelineType);
+	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
+	std::swap(this->m_color, other.m_color);
 }
 
 VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
@@ -60,6 +67,9 @@ VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
 	this->m_uniformBuffers.swap(other.m_uniformBuffers);
 	this->m_descriptorSets.swap(other.m_descriptorSets);
 	std::swap(this->r_device, other.r_device);
+	std::swap(this->m_pipelineType, other.m_pipelineType);
+	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
+	std::swap(this->m_color, other.m_color);
 
 	return *this;
 }
@@ -116,17 +126,24 @@ void VulkanMesh::Initialize(const char *path,
     	m_uniformBuffers[i].Validate();
 	}
 
-	CreateDescriptorSets(descriptorPool, r_pipelineCollection->GetPipeline(m_pipelineType).descriptorSetLayout, imageCount);
+	const VulkanPipelineCollection::VulkanPipelineSetup &pipeline = r_pipelineCollection->GetPipeline(m_pipelineType);
+
+	CreateDescriptorSets(descriptorPool, pipeline.descriptorSetLayout, imageCount);
 	UpdateDescriptorSets(); // TODO: maybe there is some reasons to add flexibility here?
 }
 
-void VulkanMesh::Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex){
+void VulkanMesh::Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex){
 	UpdateUniformBuffers(dt, imageIndex);
 	
-	VkDeviceSize dummyOffset = 0;
+	const VulkanPipelineCollection::VulkanPipelineSetup &pipeline = r_pipelineCollection->GetPipeline(m_pipelineType);
+
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vBuffPtr.bufferRef, &m_vBuffPtr.offset);
 	vkCmdBindIndexBuffer(commandBuffer, m_iBuffPtr.bufferRef, m_iBuffPtr.offset, VK_INDEX_TYPE_UINT32);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descriptorSets[imageIndex], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &m_descriptorSets[imageIndex], 0, nullptr);
+	for (const VkPushConstantRange &pushConstant : pipeline.pushConstants){
+		vkCmdPushConstants(commandBuffer, pipeline.layout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, m_color); // TODO: what if multiple push constants? think a bit later
+	}
+	
 	vkCmdDrawIndexed(commandBuffer, m_indices.size(), 1, 0, 0, 0);
 }
 

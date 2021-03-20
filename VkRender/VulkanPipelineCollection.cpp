@@ -11,7 +11,7 @@ VulkanPipelineCollection::VulkanPipelineCollection() :
 }
 
 VulkanPipelineCollection::~VulkanPipelineCollection(){
-	vkDestroyRenderPass(r_device, m_pipelines[0].renderPass, 0); // TODO: should be a single render pass
+	vkDestroyRenderPass(r_device, m_renderPass, 0); // TODO: should be a single render pass
 	for (VulkanPipelineSetup &pipelineSetup : m_pipelines){
 		vkDestroyPipeline(r_device, pipelineSetup.pipeline, 0);
 		vkDestroyPipelineLayout(r_device, pipelineSetup.layout, 0);
@@ -25,26 +25,26 @@ void VulkanPipelineCollection::Initialize(VkDevice device, VulkanShaderManager *
     r_surface = surface;
 
     // TODO: Create pipelines from config file in future
-	VkRenderPass renderPass = CreateRenderPass();
+	m_renderPass = CreateRenderPass();
 	{
 		VkDescriptorSetLayout descriptorSetLayout = CreateDescriptorSetLayout(PipelineType::PT_mesh);
-		VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_mesh, descriptorSetLayout);
-		VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_mesh, layout, renderPass);
-
+		VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_mesh, descriptorSetLayout, std::vector<VkPushConstantRange>());
+		VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_mesh, layout, m_renderPass);
 		m_pipelines[PipelineType::PT_mesh].layout = layout;
 		m_pipelines[PipelineType::PT_mesh].pipeline = pipeline;
-		m_pipelines[PipelineType::PT_mesh].renderPass = renderPass;
 		m_pipelines[PipelineType::PT_mesh].descriptorSetLayout = descriptorSetLayout;
 	}
 	{
 		VkDescriptorSetLayout descriptorSetLayout = CreateDescriptorSetLayout(PipelineType::PT_primitive);
-		VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_primitive, descriptorSetLayout);
-		VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_primitive, layout, renderPass);
+		std::vector<VkPushConstantRange> pushConstants(1);
+		pushConstants[0] = CreatePushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 4);	
+		VkPipelineLayout layout = CreatePipelineLayout(PipelineType::PT_primitive, descriptorSetLayout, pushConstants);
+		VkPipeline pipeline = CreateGraphicsPipeline(PipelineType::PT_primitive, layout, m_renderPass);
 
 		m_pipelines[PipelineType::PT_primitive].layout = layout;
 		m_pipelines[PipelineType::PT_primitive].pipeline = pipeline;
-		m_pipelines[PipelineType::PT_primitive].renderPass = renderPass;
 		m_pipelines[PipelineType::PT_primitive].descriptorSetLayout = descriptorSetLayout;
+		m_pipelines[PipelineType::PT_primitive].pushConstants = pushConstants;
 	}
 }
 
@@ -61,7 +61,7 @@ void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer, Pi
 	clearValues[1].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo passBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	passBeginInfo.renderPass = m_pipelines[type].renderPass;
+	passBeginInfo.renderPass = m_renderPass;
 	passBeginInfo.framebuffer = framebuffer;
 	passBeginInfo.renderArea.extent.width = width;
 	passBeginInfo.renderArea.extent.height = height;
@@ -79,11 +79,19 @@ void VulkanPipelineCollection::BindPipeline(VkCommandBuffer commandBuffer, Pipel
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines[type].pipeline);
 }
 
-VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType type, VkDescriptorSetLayout descriptorSetLayout)const {
+VkRenderPass VulkanPipelineCollection::GetRenderPass(){
+	return m_renderPass;
+}
+
+VkPipelineLayout VulkanPipelineCollection::CreatePipelineLayout(PipelineType type, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkPushConstantRange> &pushConstants)const {
 	assert(type < PipelineType::PT_size);
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+	if (!pushConstants.empty()){
+		pipelineLayoutInfo.pushConstantRangeCount  = pushConstants.size();
+		pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
+	}
 
 	VkPipelineLayout layout = 0;
 	VK_CHECK(vkCreatePipelineLayout(r_device, &pipelineLayoutInfo, 0, &layout));
@@ -114,7 +122,7 @@ VkPipeline VulkanPipelineCollection::CreateGraphicsPipeline(PipelineType type, V
 
 	// TODO: temporary, legacy FFP IA
 	VkVertexInputBindingDescription stream = { 0, 32, VK_VERTEX_INPUT_RATE_VERTEX };
-	VkVertexInputAttributeDescription attrs[3] = {};
+	std::vector<VkVertexInputAttributeDescription> attrs(2);
 
 	attrs[0].location = 0;
 	attrs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -122,14 +130,17 @@ VkPipeline VulkanPipelineCollection::CreateGraphicsPipeline(PipelineType type, V
 	attrs[1].location = 1;
 	attrs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attrs[1].offset = 12;
-	attrs[2].location = 2;
-	attrs[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attrs[2].offset = 24;
+	if (type != PT_primitive){
+		attrs.resize(3);
+		attrs[2].location = 2;
+		attrs[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attrs[2].offset = 24;
+	}
 
 	vertexInput.vertexBindingDescriptionCount = 1;
 	vertexInput.pVertexBindingDescriptions = &stream;
-	vertexInput.vertexAttributeDescriptionCount = 3;
-	vertexInput.pVertexAttributeDescriptions = attrs;
+	vertexInput.vertexAttributeDescriptionCount = attrs.size();
+	vertexInput.pVertexAttributeDescriptions = attrs.data();
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -274,4 +285,13 @@ VkDescriptorSetLayout VulkanPipelineCollection::CreateDescriptorSetLayout(Pipeli
 	VK_CHECK(vkCreateDescriptorSetLayout(r_device, &layoutInfo, nullptr, &descriptorSetLayout));
 
 	return descriptorSetLayout;
+}
+
+VkPushConstantRange VulkanPipelineCollection::CreatePushConstant(uint32_t stageFlags, uint32_t offset, uint32_t size) const {
+	VkPushConstantRange pushConstant;
+	pushConstant.stageFlags = stageFlags;
+	pushConstant.offset = offset;
+	pushConstant.size = size;
+
+	return pushConstant;
 }

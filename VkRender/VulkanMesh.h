@@ -40,7 +40,7 @@ public:
                     iface::RenderPipelineCollection::PipelineType pipelineType, 
                     VulkanPipelineCollection *pipelineCollection, 
                     uint32_t imageCount); // TODO: time to get a structure for intialization(vulkan-like?)
-    void Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex);
+    void Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     VulkanMesh(VulkanMesh&&);
     VulkanMesh& operator=(VulkanMesh&&);
@@ -56,6 +56,8 @@ private:
 
     std::vector<Vertex> m_vertices;
 	std::vector<uint32_t> m_indices;
+
+    float m_color[4]; // TODO: switch to material?.. check PBR code to not fck up 
 
     BufferPtr m_vBuffPtr;
     BufferPtr m_iBuffPtr;

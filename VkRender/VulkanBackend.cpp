@@ -163,7 +163,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	uint32_t windowWidth = 0, windowHeight = 0;
 	m_surface->GetWindowsExtent(windowWidth, windowHeight);
 	assert(!!windowWidth && !!windowHeight);
-	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
+	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetRenderPass(), m_bufferSize);
 	m_swapChain->InitializeSwapChain();
 
 	// Descriptor sets
@@ -208,7 +208,7 @@ void VulkanBackend::Render(float dt){
 		m_pipelineCollection->BindPipeline(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh);
 
 		for(VulkanMesh &mesh : m_meshes){
-			mesh.Render(dt, commandBuffer, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).layout, nextImg_idx);
+			mesh.Render(dt, commandBuffer, nextImg_idx);
 		}
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);

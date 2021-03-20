@@ -1,9 +1,13 @@
 #version 450
 
 layout(location = 0) out vec4 outputColor;
-layout(location = 0) in vec4 inputColor;
+
+layout( push_constant ) uniform ColorBlock {
+	layout(offset = 0) vec4 Color;
+	// vec4 Color;
+} PushConstant;
 
 void main()
 {
-	outputColor = inputColor;
+	outputColor = PushConstant.Color;
 }
