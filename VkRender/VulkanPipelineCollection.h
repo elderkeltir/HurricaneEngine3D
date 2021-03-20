@@ -22,7 +22,7 @@ public:
     ~VulkanPipelineCollection();
     void Initialize(VkDevice device, VulkanShaderManager * shaderMgr, VulkanSurface * surface, uint32_t imageCount);
     const VulkanPipelineSetup& GetPipeline(PipelineType type) const;
-    void BeginRenderPass(VkCommandBuffer commandBuffer, PipelineType type, VkFramebuffer framebuffer, uint32_t width, uint32_t height);
+    void BeginRenderPass(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, uint32_t width, uint32_t height);
     void EndRenderPass(VkCommandBuffer commandBuffer);
     void BindPipeline(VkCommandBuffer commandBuffer, PipelineType type);
     VkRenderPass GetRenderPass();

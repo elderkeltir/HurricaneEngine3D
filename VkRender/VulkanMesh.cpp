@@ -102,7 +102,7 @@ void VulkanMesh::Initialize(const char *path,
     void* vData = 0;
 	VK_CHECK(vkMapMemory(r_device, m_vsBuffPtr.memoryRef, m_vsBuffPtr.offset, m_vsBuffPtr.size, 0, &vData));
     assert(vData);
-    memcpy(vData, m_vertices.data(), m_vertices.size() * sizeof(Vertex));
+    memcpy(vData, m_vertices.data(), m_vertices.size() * sizeof(Vertex)); // TODO: for primitive we don't actually need uv coords
     vkUnmapMemory(r_device, m_vsBuffPtr.memoryRef);
 
 	// copy from staging buffer to vertex
@@ -145,6 +145,10 @@ void VulkanMesh::Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageI
 	}
 	
 	vkCmdDrawIndexed(commandBuffer, m_indices.size(), 1, 0, 0, 0);
+}
+
+iface::RenderPipelineCollection::PipelineType VulkanMesh::GetPipelineType() const{
+	return m_pipelineType;
 }
 
 bool VulkanMesh::ParseObj(const char* path){

@@ -41,6 +41,7 @@ public:
                     VulkanPipelineCollection *pipelineCollection, 
                     uint32_t imageCount); // TODO: time to get a structure for intialization(vulkan-like?)
     void Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    iface::RenderPipelineCollection::PipelineType GetPipelineType() const;
 
     VulkanMesh(VulkanMesh&&);
     VulkanMesh& operator=(VulkanMesh&&);

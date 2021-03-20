@@ -54,7 +54,7 @@ const VulkanPipelineCollection::VulkanPipelineSetup& VulkanPipelineCollection::G
     return m_pipelines.at(type);
 }
 
-void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer, PipelineType type, VkFramebuffer framebuffer, uint32_t width, uint32_t height){
+void VulkanPipelineCollection::BeginRenderPass(VkCommandBuffer commandBuffer,VkFramebuffer framebuffer, uint32_t width, uint32_t height){
 	VkClearColorValue color = { 48.f / 255.f, 10.f / 255.f, 36.f / 255.f, 1 };
 	std::vector<VkClearValue> clearValues(2);
 	clearValues[0].color = { color };
