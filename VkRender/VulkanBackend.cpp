@@ -163,7 +163,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	uint32_t windowWidth = 0, windowHeight = 0;
 	m_surface->GetWindowsExtent(windowWidth, windowHeight);
 	assert(!!windowWidth && !!windowHeight);
-	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).renderPass, m_bufferSize);
+	m_swapChain = new VulkanSwapChain(m_physicalDevice, m_device, m_surface, m_memoryMgr, m_cmdQueueDispatcher->GetQueue(VulkanCommandQueueDispatcher::QueueType::QT_graphics).familyQueueIndex, m_surface->GetSwapchainFormat(), windowWidth, windowHeight, m_pipelineCollection->GetRenderPass(), m_bufferSize);
 	m_swapChain->InitializeSwapChain();
 
 	// Descriptor sets
@@ -181,10 +181,17 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/mesh/Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 #endif //_WIN32
-
-	VulkanMesh mesh;
-	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).descriptorSetLayout, m_bufferSize);
-	m_meshes.push_back(std::move(mesh));
+	{
+		VulkanMesh mesh;
+		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
+		m_meshes.push_back(std::move(mesh));
+	}
+	{
+		VulkanMesh mesh;
+		obj_path = root_path.string() + "/content/Primitives/capsule.obj";
+		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
+		m_meshes.push_back(std::move(mesh));
+	}
 }
 
 void VulkanBackend::Render(float dt){
@@ -197,7 +204,7 @@ void VulkanBackend::Render(float dt){
 		VkCommandBuffer commandBuffer = m_cmdQueueDispatcher->GetCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		m_cmdQueueDispatcher->BeginCommandBuffer(VulkanCommandQueueDispatcher::QueueType::QT_graphics, nextImg_idx);
 		//m_swapChain->BindRenderStartBarrier(commandBuffer, nextImg_idx); // TODO: clean up? we can do transactions using render pass dependency. which one is better?
-		m_pipelineCollection->BeginRenderPass(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh, m_swapChain->GetFB(nextImg_idx), width, height);
+		m_pipelineCollection->BeginRenderPass(commandBuffer, m_swapChain->GetFB(nextImg_idx), width, height);
 
 		// TODO: move this somewhere later
 		VkViewport viewport = { 0, float(height), float(width), -float(height), 0, 1 };
@@ -205,10 +212,10 @@ void VulkanBackend::Render(float dt){
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		m_pipelineCollection->BindPipeline(commandBuffer, VulkanPipelineCollection::PipelineType::PT_mesh);
-
 		for(VulkanMesh &mesh : m_meshes){
-			mesh.Render(dt, commandBuffer, m_pipelineCollection->GetPipeline(VulkanPipelineCollection::PipelineType::PT_mesh).layout, nextImg_idx);
+			VulkanPipelineCollection::PipelineType pipelineType = mesh.GetPipelineType();
+			m_pipelineCollection->BindPipeline(commandBuffer, pipelineType); // TODO: sort by pipeline somewhere. to avoid unnecessary pipeline switches
+			mesh.Render(dt, commandBuffer, nextImg_idx);
 		}
 
 		m_pipelineCollection->EndRenderPass(commandBuffer);
@@ -277,7 +284,7 @@ VkPhysicalDevice VulkanBackend::PickPhysicalDevice(const std::vector<VkPhysicalD
 		// TODO: save somewhere
 		VkDeviceSize alignment = props.limits.minUniformBufferOffsetAlignment;
 
-		printf("GPU%d: %s\n", i, props.deviceName);
+		printf("GPU%d: %s\n", i, props.deviceName); // TODO: some ifdef for linux and perf build to select proprietary amdgpu driver to actually use amd perf tool
 		{
 			uint32_t familyIndex = VulkanCommandQueueDispatcher::TestFamilQueueyIndex(physicalDevices[i], VK_QUEUE_GRAPHICS_BIT);
 			if (familyIndex != VK_QUEUE_FAMILY_IGNORED)
