@@ -72,27 +72,31 @@ BufferPtr VulkanMemoryManager::AllocateBuffer(size_t size, uint32_t usageType){
     for (BufferSet &bufferSet : m_buffers){
         if (bufferSet.bufferType & GetVulkanBufferUsageFlags(usageType)){
             assert(bufferSet.size - bufferSet.nextFreeSlice > size);
-#ifdef WIN32
+
+            uint32_t actual_offset = bufferSet.nextFreeSlice;
             uint32_t actual_size = size; // TODO: props.limits.minUniformBufferOffsetAlignment
+#ifdef WIN32
             if (usageType & VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer){
                 actual_size = std::max((unsigned long)(size / 16ul) * 16ul, 16ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+                actual_offset = std::max((unsigned long)(actual_offset / 16) * 16, 16ul);
             }
 #endif
 #ifdef LINUX
-            uint32_t actual_size = size; // TODO: props.limits.minUniformBufferOffsetAlignment
             if (usageType & VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer){
                 actual_size = std::max((size / 16) * 16, 16ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+                actual_offset = std::max((unsigned long)(actual_offset / 16) * 16, 16ul);
             }
 #endif
 #ifdef APPLE
-            uint32_t actual_size = size; // TODO: props.limits.minUniformBufferOffsetAlignment
+            
             if (usageType & VulkanMemoryManager::BufferUsageType::BUT_uniform_buffer){
-                actual_size = std::max((size / 256) * 256, 256ul); // TODO: props.limits.minUniformBufferOffsetAlignment
-            }ent
+                actual_size = std::max((unsigned long)(actual_size / 256) * 256, 256ul); // TODO: props.limits.minUniformBufferOffsetAlignment
+                actual_offset = std::max((unsigned long)(actual_offset / 256) * 256, 256ul);
+            }
 #endif
             buffPtr.bufferRef = bufferSet.aggregatedBuffer;
             buffPtr.memoryRef = bufferSet.aggregatedMemory;
-            buffPtr.offset = bufferSet.nextFreeSlice;
+            buffPtr.offset = actual_offset;
             buffPtr.size = actual_size;
             buffPtr.usageType = usageType;
 
