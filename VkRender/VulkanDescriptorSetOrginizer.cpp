@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#define DESCRIPTOR_SIZE 32
 
 VulkanDescriptorSetOrginizer::VulkanDescriptorSetOrginizer() :
     m_descriptorPool(nullptr)
@@ -42,10 +43,9 @@ void VulkanDescriptorSetOrginizer::CreateDescriptorPool(DescriptorPoolSetup pool
 VulkanDescriptorSetOrginizer::DescriptorPoolSetup VulkanDescriptorSetOrginizer::SetupDescriptorPoolConfig() const{
     // predict necessary pool size here for the whole application
     DescriptorPoolSetup poolSetup;
-    poolSetup.unixormBufferNumber = 3;
-    poolSetup.maxSetNumber = 3;
-    poolSetup.combinedImageSampleNumber = 3;
-    poolSetup.maxSetNumber = 6;
+    poolSetup.unixormBufferNumber = 3 * DESCRIPTOR_SIZE;
+    poolSetup.combinedImageSampleNumber = 3 * DESCRIPTOR_SIZE;
+    poolSetup.maxSetNumber = 6 * DESCRIPTOR_SIZE;
 
     return poolSetup;
 }

@@ -1,6 +1,7 @@
 #include "VulkanMesh.h"
 #include "VulkanMemoryManager.h"
 #include "VulkanCommandQueueDispatcher.h"
+#include "VulkanPipelineCollection.h"
 
 #include <meshoptimizer.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -16,9 +17,13 @@
 #include <string>
 
 VulkanMesh::VulkanMesh() : 
-	r_device(nullptr)
+	r_device(nullptr),
+	m_pipelineType(iface::RenderPipelineCollection::PipelineType::PT_size)
 {
-
+	m_color[0] = 0.7f;
+	m_color[1] = 0.5f;
+	m_color[2] = 0.2f;
+	m_color[3] = 1.f;
 }
 
 VulkanMesh::~VulkanMesh(){
@@ -46,6 +51,9 @@ VulkanMesh::VulkanMesh(VulkanMesh && other){
 	this->m_uniformBuffers.swap(other.m_uniformBuffers);
 	this->m_descriptorSets.swap(other.m_descriptorSets);
 	std::swap(this->r_device, other.r_device);
+	std::swap(this->m_pipelineType, other.m_pipelineType);
+	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
+	std::swap(this->m_color, other.m_color);
 }
 
 VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
@@ -59,13 +67,25 @@ VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
 	this->m_uniformBuffers.swap(other.m_uniformBuffers);
 	this->m_descriptorSets.swap(other.m_descriptorSets);
 	std::swap(this->r_device, other.r_device);
+	std::swap(this->m_pipelineType, other.m_pipelineType);
+	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
+	std::swap(this->m_color, other.m_color);
 
 	return *this;
 }
 
-void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
+void VulkanMesh::Initialize(const char *path,
+                    const char *texturePath, 
+                    VulkanMemoryManager * memoryMgr, 
+                    VulkanCommandQueueDispatcher * queueDispatcher, 
+                    VkDevice device, VkDescriptorPool descriptorPool, 
+                    iface::RenderPipelineCollection::PipelineType pipelineType, 
+                    VulkanPipelineCollection *pipelineCollection, 
+                    uint32_t imageCount){
     assert(ParseObj(path));
     r_device = device;
+	r_pipelineCollection = pipelineCollection;
+	m_pipelineType = pipelineType;
     
 	// Allocate buffers for vertex, index buffers
     assert(memoryMgr);
@@ -82,7 +102,7 @@ void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMem
     void* vData = 0;
 	VK_CHECK(vkMapMemory(r_device, m_vsBuffPtr.memoryRef, m_vsBuffPtr.offset, m_vsBuffPtr.size, 0, &vData));
     assert(vData);
-    memcpy(vData, m_vertices.data(), m_vertices.size() * sizeof(Vertex));
+    memcpy(vData, m_vertices.data(), m_vertices.size() * sizeof(Vertex)); // TODO: for primitive we don't actually need uv coords
     vkUnmapMemory(r_device, m_vsBuffPtr.memoryRef);
 
 	// copy from staging buffer to vertex
@@ -95,7 +115,9 @@ void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMem
     vkUnmapMemory(r_device, m_iBuffPtr.memoryRef);
 
 	// texture
-	LoadTexture(memoryMgr, queueDispatcher, texturePath);
+	if (m_pipelineType != iface::RenderPipelineCollection::PipelineType::PT_primitive){
+		LoadTexture(memoryMgr, queueDispatcher, texturePath);
+	}
 
 	// allocate uniform buffers
 	m_uniformBuffers.resize(imageCount);
@@ -104,18 +126,29 @@ void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMem
     	m_uniformBuffers[i].Validate();
 	}
 
-	CreateDescriptorSets(descriptorPool, descriptorSetLayout, imageCount);
+	const VulkanPipelineCollection::VulkanPipelineSetup &pipeline = r_pipelineCollection->GetPipeline(m_pipelineType);
+
+	CreateDescriptorSets(descriptorPool, pipeline.descriptorSetLayout, imageCount);
 	UpdateDescriptorSets(); // TODO: maybe there is some reasons to add flexibility here?
 }
 
-void VulkanMesh::Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex){
+void VulkanMesh::Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex){
 	UpdateUniformBuffers(dt, imageIndex);
 	
-	VkDeviceSize dummyOffset = 0;
+	const VulkanPipelineCollection::VulkanPipelineSetup &pipeline = r_pipelineCollection->GetPipeline(m_pipelineType);
+
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vBuffPtr.bufferRef, &m_vBuffPtr.offset);
 	vkCmdBindIndexBuffer(commandBuffer, m_iBuffPtr.bufferRef, m_iBuffPtr.offset, VK_INDEX_TYPE_UINT32);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descriptorSets[imageIndex], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &m_descriptorSets[imageIndex], 0, nullptr);
+	for (const VkPushConstantRange &pushConstant : pipeline.pushConstants){
+		vkCmdPushConstants(commandBuffer, pipeline.layout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, m_color); // TODO: what if multiple push constants? think a bit later
+	}
+	
 	vkCmdDrawIndexed(commandBuffer, m_indices.size(), 1, 0, 0, 0);
+}
+
+iface::RenderPipelineCollection::PipelineType VulkanMesh::GetPipelineType() const{
+	return m_pipelineType;
 }
 
 bool VulkanMesh::ParseObj(const char* path){
@@ -191,7 +224,6 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
 	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//ubo.proj[1][1] *= -1; // hack for Vulkan
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);
@@ -222,7 +254,7 @@ void VulkanMesh::UpdateDescriptorSets(){
 		imageInfo.imageView = m_imagePtr.imageView;
 		imageInfo.sampler = m_imagePtr.sampler;
 
-		std::vector<VkWriteDescriptorSet> descriptorWrites(2);
+		std::vector<VkWriteDescriptorSet> descriptorWrites(1);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = m_descriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
@@ -233,13 +265,16 @@ void VulkanMesh::UpdateDescriptorSets(){
 		descriptorWrites[0].pImageInfo = nullptr;
 		descriptorWrites[0].pTexelBufferView = nullptr;
 
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = m_descriptorSets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &imageInfo;
+		if (m_pipelineType != iface::RenderPipelineCollection::PipelineType::PT_primitive){
+			descriptorWrites.resize(2);
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = m_descriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+		}
 
 		vkUpdateDescriptorSets(r_device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr); // Seems you can'not send array of writes if they all are set to the same bindings
 	}

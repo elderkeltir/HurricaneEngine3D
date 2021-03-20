@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interfaces/RenderMesh.h"
+#include "interfaces/RenderPipelineCollection.h"
 #include "render_utils.h"
 
 #include <volk.h>
@@ -10,6 +11,7 @@
 
 class VulkanMemoryManager;
 class VulkanCommandQueueDispatcher;
+class VulkanPipelineCollection;
 
 class VulkanMesh : public iface::RenderMesh{
 public:
@@ -30,8 +32,16 @@ public:
 
     VulkanMesh();
     ~VulkanMesh();
-    void Initialize(const char *path, const char *texturePath, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount);
-    void Render(float dt, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex);
+    void Initialize(const char *path,
+                    const char *texturePath, 
+                    VulkanMemoryManager * memoryMgr, 
+                    VulkanCommandQueueDispatcher * queueDispatcher, 
+                    VkDevice device, VkDescriptorPool descriptorPool, 
+                    iface::RenderPipelineCollection::PipelineType pipelineType, 
+                    VulkanPipelineCollection *pipelineCollection, 
+                    uint32_t imageCount); // TODO: time to get a structure for intialization(vulkan-like?)
+    void Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    iface::RenderPipelineCollection::PipelineType GetPipelineType() const;
 
     VulkanMesh(VulkanMesh&&);
     VulkanMesh& operator=(VulkanMesh&&);
@@ -48,6 +58,8 @@ private:
     std::vector<Vertex> m_vertices;
 	std::vector<uint32_t> m_indices;
 
+    float m_color[4]; // TODO: switch to material?.. check PBR code to not fck up 
+
     BufferPtr m_vBuffPtr;
     BufferPtr m_iBuffPtr;
     BufferPtr m_vsBuffPtr;
@@ -56,6 +68,8 @@ private:
 
     std::vector<BufferPtr> m_uniformBuffers;
     std::vector<VkDescriptorSet> m_descriptorSets;
+    iface::RenderPipelineCollection::PipelineType m_pipelineType;
 
+    VulkanPipelineCollection *r_pipelineCollection;
     VkDevice r_device;
 };
