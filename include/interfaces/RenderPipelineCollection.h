@@ -5,6 +5,7 @@ namespace iface{
     public:
         enum PipelineType {
             PT_mesh,
+            PT_primitive,
             PT_skybox,
             PT_deffered,
             PT_shadowMap,

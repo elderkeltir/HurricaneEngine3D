@@ -1,6 +1,7 @@
 #include "VulkanMesh.h"
 #include "VulkanMemoryManager.h"
 #include "VulkanCommandQueueDispatcher.h"
+#include "VulkanPipelineCollection.h"
 
 #include <meshoptimizer.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -63,9 +64,18 @@ VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
 	return *this;
 }
 
-void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMemoryManager * memoryMgr, VulkanCommandQueueDispatcher * queueDispatcher, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t imageCount){
+void VulkanMesh::Initialize(const char *path,
+                    const char *texturePath, 
+                    VulkanMemoryManager * memoryMgr, 
+                    VulkanCommandQueueDispatcher * queueDispatcher, 
+                    VkDevice device, VkDescriptorPool descriptorPool, 
+                    iface::RenderPipelineCollection::PipelineType pipelineType, 
+                    VulkanPipelineCollection *pipelineCollection, 
+                    uint32_t imageCount){
     assert(ParseObj(path));
     r_device = device;
+	r_pipelineCollection = pipelineCollection;
+	m_pipelineType = pipelineType;
     
 	// Allocate buffers for vertex, index buffers
     assert(memoryMgr);
@@ -95,7 +105,9 @@ void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMem
     vkUnmapMemory(r_device, m_iBuffPtr.memoryRef);
 
 	// texture
-	LoadTexture(memoryMgr, queueDispatcher, texturePath);
+	if (m_pipelineType != iface::RenderPipelineCollection::PipelineType::PT_primitive){
+		LoadTexture(memoryMgr, queueDispatcher, texturePath);
+	}
 
 	// allocate uniform buffers
 	m_uniformBuffers.resize(imageCount);
@@ -104,7 +116,7 @@ void VulkanMesh::Initialize(const char *path, const char *texturePath, VulkanMem
     	m_uniformBuffers[i].Validate();
 	}
 
-	CreateDescriptorSets(descriptorPool, descriptorSetLayout, imageCount);
+	CreateDescriptorSets(descriptorPool, r_pipelineCollection->GetPipeline(m_pipelineType).descriptorSetLayout, imageCount);
 	UpdateDescriptorSets(); // TODO: maybe there is some reasons to add flexibility here?
 }
 
@@ -191,7 +203,6 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
 	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//ubo.proj[1][1] *= -1; // hack for Vulkan
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);
@@ -222,7 +233,7 @@ void VulkanMesh::UpdateDescriptorSets(){
 		imageInfo.imageView = m_imagePtr.imageView;
 		imageInfo.sampler = m_imagePtr.sampler;
 
-		std::vector<VkWriteDescriptorSet> descriptorWrites(2);
+		std::vector<VkWriteDescriptorSet> descriptorWrites(1);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = m_descriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
@@ -233,13 +244,16 @@ void VulkanMesh::UpdateDescriptorSets(){
 		descriptorWrites[0].pImageInfo = nullptr;
 		descriptorWrites[0].pTexelBufferView = nullptr;
 
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = m_descriptorSets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &imageInfo;
+		if (m_pipelineType != iface::RenderPipelineCollection::PipelineType::PT_primitive){
+			descriptorWrites.resize(2);
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = m_descriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+		}
 
 		vkUpdateDescriptorSets(r_device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr); // Seems you can'not send array of writes if they all are set to the same bindings
 	}

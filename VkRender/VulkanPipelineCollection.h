@@ -29,7 +29,7 @@ public:
 private:
     VkPipelineLayout CreatePipelineLayout(PipelineType type, VkDescriptorSetLayout descriptorSetLayout) const; // load form text files in future or binary files w\e
     VkPipeline CreateGraphicsPipeline(PipelineType type, VkPipelineLayout layout, VkRenderPass renderPass) const;
-    VkRenderPass CreateRenderPass(PipelineType type) const;
+    VkRenderPass CreateRenderPass() const;
     VkDescriptorSetLayout CreateDescriptorSetLayout(PipelineType type) const;
 
     VkPipelineCache m_pipelineCache;
