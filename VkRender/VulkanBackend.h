@@ -26,6 +26,7 @@ class VulkanCommandQueueDispatcher;
 class VulkanMesh;
 class VulkanMemoryManager;
 class VulkanDescriptorSetOrginizer;
+class VulkanCamera;
 
 DEFINE_HANDLE(VkPhysicalDevice)
 DEFINE_HANDLE(VkInstance)
@@ -40,6 +41,8 @@ public:
     void Initialize(const char * rootFolder) override final;
     void Render(float dt) override final;
     bool IsRunning() override final;
+
+    VulkanCamera * GetCamera();
 
     VulkanBackend(VulkanBackend&) = delete;
     VulkanBackend operator=(VulkanBackend&) = delete;
@@ -61,6 +64,7 @@ private:
     VulkanCommandQueueDispatcher * m_cmdQueueDispatcher;
     VulkanMemoryManager * m_memoryMgr;
     VulkanDescriptorSetOrginizer * m_descriptorSetOrganizer;
+    VulkanCamera * m_camera;
 
     char m_rootFolder[255];
     std::vector<VulkanMesh> m_meshes; // TODO: move to mesh manager/pool in a future pass

@@ -2,6 +2,8 @@
 #include "VulkanMemoryManager.h"
 #include "VulkanCommandQueueDispatcher.h"
 #include "VulkanPipelineCollection.h"
+#include "VulkanBackend.h"
+#include "VulkanCamera.h"
 
 #include <meshoptimizer.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -16,9 +18,10 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <string>
 
-VulkanMesh::VulkanMesh() : 
+VulkanMesh::VulkanMesh(VulkanBackend * backend) : 
 	r_device(nullptr),
-	m_pipelineType(iface::RenderPipelineCollection::PipelineType::PT_size)
+	m_pipelineType(iface::RenderPipelineCollection::PipelineType::PT_size),
+	r_backend(backend)
 {
 	m_color[0] = 0.7f;
 	m_color[1] = 0.5f;
@@ -54,6 +57,7 @@ VulkanMesh::VulkanMesh(VulkanMesh && other){
 	std::swap(this->m_pipelineType, other.m_pipelineType);
 	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
 	std::swap(this->m_color, other.m_color);
+	std::swap(this->r_backend, other.r_backend);
 }
 
 VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
@@ -70,6 +74,7 @@ VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
 	std::swap(this->m_pipelineType, other.m_pipelineType);
 	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
 	std::swap(this->m_color, other.m_color);
+	std::swap(this->r_backend, other.r_backend);
 
 	return *this;
 }
@@ -222,8 +227,12 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	time+=dt;
 	UniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
-	ubo.view = ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = r_backend->GetCamera()->GetProjection(); // TODO: move away to scene UBO when scene is implemented
+	ubo.view = r_backend->GetCamera()->GetView();
+
+	auto proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
+	auto view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);

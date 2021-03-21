@@ -56,6 +56,7 @@ add_library(${PROJECT_NAME} SHARED VulkanBackend.cpp
     VulkanSwapChain.cpp
     VulkanPipelineCollection.cpp
     VulkanDescriptorSetOrginizer.cpp
+    VulkanCamera.cpp
 
     ${EXTERN_FOLDER}/volk/volk.c
     ${EXTERN_FOLDER}/meshoptimizer/src/allocator.cpp

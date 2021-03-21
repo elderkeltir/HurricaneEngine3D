@@ -1,8 +1,73 @@
 #include "VulkanSurface.h"
+#include "VulkanBackend.h"
+#include "VulkanCamera.h"
 
 #include <GLFW/glfw3.h>
 
 #include <vector>
+
+static double last_xpos;
+static double last_ypos;
+
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_W && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(0, 0, 1);
+        }
+    }
+    if (key == GLFW_KEY_S && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(0, 0, -1);
+        }
+    }
+    if (key == GLFW_KEY_D && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(1, 0, 0);
+        }
+    }
+    if (key == GLFW_KEY_A && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(-1, 0, 0);
+        }
+    }
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(0, -1, 0);
+        }
+    }
+    if (key == GLFW_KEY_E && action == GLFW_PRESS){
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Move(0, 1, 0);
+        }
+    }
+}
+
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    if (state == GLFW_PRESS){
+        if (fabs(last_xpos - xpos) > 0.01){
+            VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+            if (backend){
+                backend->GetCamera()->Rotate((last_xpos - xpos), 0);
+            }
+        }
+        if (fabs(last_ypos - ypos) > 0.01){
+            VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+            if (backend){
+                backend->GetCamera()->Rotate(0, (last_ypos - ypos));
+            }
+        }
+    }
+}
 
 void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDevice){
     r_instance = instance;
@@ -15,6 +80,13 @@ void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDev
 
     // create surface
     VK_CHECK(glfwCreateWindowSurface(r_instance, m_window, NULL, &m_vk_surface));
+
+    glfwSetWindowUserPointer(m_window, r_backend);
+
+    glfwSetKeyCallback(m_window, key_callback);
+    glfwSetCursorPosCallback(m_window, cursor_position_callback);
+    last_xpos = 0;
+    last_ypos = 0;
 }
 
 std::vector<const char*> VulkanSurface::GetRequiredExtension(){
@@ -54,7 +126,9 @@ VkSurfaceKHR& VulkanSurface::Vk_surface(){
     return m_vk_surface;
 }
 
-VulkanSurface::VulkanSurface(){
+VulkanSurface::VulkanSurface(VulkanBackend * backend) :
+    r_backend(backend)
+{
     // init glfw
     const int rc = glfwInit();
 	assert(rc);

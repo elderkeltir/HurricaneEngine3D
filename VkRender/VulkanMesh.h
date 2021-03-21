@@ -12,6 +12,7 @@
 class VulkanMemoryManager;
 class VulkanCommandQueueDispatcher;
 class VulkanPipelineCollection;
+class VulkanBackend;
 
 class VulkanMesh : public iface::RenderMesh{
 public:
@@ -30,7 +31,7 @@ public:
     };
 public:
 
-    VulkanMesh();
+    VulkanMesh(VulkanBackend * backend);
     ~VulkanMesh();
     void Initialize(const char *path,
                     const char *texturePath, 
@@ -72,4 +73,5 @@ private:
 
     VulkanPipelineCollection *r_pipelineCollection;
     VkDevice r_device;
+    VulkanBackend * r_backend;
 };

@@ -83,7 +83,7 @@ struct ImagePtr{
 	ImagePtr& operator=(ImagePtr&) = delete;
 };
 
-
+#define vec3log(vec) vec.x,vec.y,vec.z
 
 
 // #include <glm/vec3.hpp> // glm::vec3

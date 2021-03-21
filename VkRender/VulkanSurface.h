@@ -6,6 +6,7 @@
 
 // forward declaration
 class GLFWwindow;
+class VulkanBackend;
 
 // class to manage window and related surface.
 class VulkanSurface{
@@ -19,12 +20,13 @@ public:
 
     VkSurfaceKHR& Vk_surface();
 
-    VulkanSurface();
+    VulkanSurface(VulkanBackend * backend);
     ~VulkanSurface();
 private:
     VkSurfaceKHR m_vk_surface;
     GLFWwindow* m_window;
 
+    VulkanBackend * r_backend;
     VkInstance r_instance;
     VkPhysicalDevice r_physicalDevice;
 };

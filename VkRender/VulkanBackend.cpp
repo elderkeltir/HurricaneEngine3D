@@ -8,6 +8,7 @@
 #include "VulkanMemoryManager.h"
 #include "VulkanMesh.h"
 #include "VulkanDescriptorSetOrginizer.h"
+#include "VulkanCamera.h"
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -108,7 +109,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	strcpy(m_rootFolder, rootFolder);
 
 	// Create Surface
-	m_surface = new VulkanSurface;
+	m_surface = new VulkanSurface(this);
 
     // init volk
     VK_CHECK(volkInitialize());
@@ -170,6 +171,12 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	m_descriptorSetOrganizer = new VulkanDescriptorSetOrginizer;
 	m_descriptorSetOrganizer->Initialize(m_device);
 
+	// Camera
+	m_camera = new VulkanCamera(this);
+	glm::vec3 pos(5.0f, 5.0f, -5.0f);
+	glm::vec3 dir(-5.0f, -5.0f, 5.0f);
+	m_camera->Initialize(windowWidth, windowHeight, pos, dir);
+
 	// TODO: render scene? how to store meshes(vertex + index + UBO + texture) in render backend?
 	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
 
@@ -182,12 +189,12 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 #endif //_WIN32
 	{
-		VulkanMesh mesh;
+		VulkanMesh mesh(this);
 		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
 		m_meshes.push_back(std::move(mesh));
 	}
 	{
-		VulkanMesh mesh;
+		VulkanMesh mesh(this);
 		obj_path = root_path.string() + "/content/Primitives/capsule.obj";
 		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
 		m_meshes.push_back(std::move(mesh));
@@ -231,6 +238,10 @@ void VulkanBackend::Render(float dt){
 
 bool VulkanBackend::IsRunning(){
 	return m_surface->PollWindowEvents();
+}
+
+VulkanCamera * VulkanBackend::GetCamera(){
+	return m_camera;
 }
 
 void VulkanBackend::CreateInstance(){
