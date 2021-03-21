@@ -28,7 +28,7 @@ public:
     }
     
     stack_string(const stack_string &stackString) {
-        stackString(stackString.m_buffer);
+        stack_string(stackString.m_buffer);
     }
     
     stack_string(stack_string &&other) {
