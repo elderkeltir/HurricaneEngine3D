@@ -14,6 +14,7 @@
 namespace physx {
 	class PxFoundation;
 	class PxPhysics;
+	class PxScene;
 }
 
 class PhysSDK {
@@ -23,7 +24,10 @@ public:
 	void PXPHYS_EXPORTS Shutdown();
 
 private:
-	physx::PxFoundation* mFoundation;
+	void CreateScene();
+
+	physx::PxFoundation* m_foundation;
 	//physx::PxPvd* mPvd;
-	physx::PxPhysics* mPhysics;
+	physx::PxPhysics* m_physics;
+	physx::PxScene * m_scene;
 };
