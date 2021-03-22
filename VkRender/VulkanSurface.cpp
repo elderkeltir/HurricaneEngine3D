@@ -49,24 +49,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
     }
 }
-
+bool firstMouse = true; // TODO: rewrite all this code later. I'm in hurry now QQ
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    if (firstMouse)
+    {
+        last_xpos = xpos;
+        last_ypos = ypos;
+        firstMouse = false;
+    }
+    float xoffset = xpos - last_xpos;
+    float yoffset = last_ypos - ypos;
+
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
     if (state == GLFW_PRESS){
-        if (fabs(last_xpos - xpos) > 0.01){
-            VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
-            if (backend){
-                backend->GetCamera()->Rotate((last_xpos - xpos), 0);
-            }
-        }
-        if (fabs(last_ypos - ypos) > 0.01){
-            VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
-            if (backend){
-                backend->GetCamera()->Rotate(0, (last_ypos - ypos));
-            }
+        VulkanBackend * backend = (VulkanBackend*)glfwGetWindowUserPointer(window);
+        if (backend){
+            backend->GetCamera()->Rotate(xoffset, yoffset);
         }
     }
+
+    last_xpos = xpos;
+    last_ypos = ypos;
 }
 
 void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDevice){

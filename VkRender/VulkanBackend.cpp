@@ -173,7 +173,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 
 	// Camera
 	m_camera = new VulkanCamera(this);
-	glm::vec3 pos(5.0f, 5.0f, -5.0f);
+	glm::vec3 pos(-2.0f, 0.0f, 8.0f);
 	glm::vec3 dir(-5.0f, -5.0f, 5.0f);
 	m_camera->Initialize(windowWidth, windowHeight, pos, dir);
 
@@ -218,6 +218,9 @@ void VulkanBackend::Render(float dt){
 		VkRect2D scissor = { {0, 0}, {uint32_t(width), uint32_t(height)} };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		// Update camera
+		m_camera->Update(dt);
 
 		for(VulkanMesh &mesh : m_meshes){
 			VulkanPipelineCollection::PipelineType pipelineType = mesh.GetPipelineType();

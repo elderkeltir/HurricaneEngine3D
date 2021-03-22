@@ -9,39 +9,52 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/vec4.hpp>
 
-#include <cstdio> // TODO
+
+const float YAW         = -90.0f; // TODO: make separate window class, when get rid of glfw, and rewrite camera class after please >_<
+const float PITCH       =  0.0f;
+const float SPEED       =  2000.5f;
+const float SENSITIVITY =  0.1f;
+const float ZOOM        =  45.0f;
+
 
 void VulkanCamera::Rotate(float x, float y){
-    printf("Rotate [%f][%f] before dir=(%f,%f,%f), up=(%f,%f,%f), right=(%f,%f,%f)\n",x, y, vec3log(m_direction), vec3log(m_up), vec3log(m_right));
-    if (y){
-        float dy = y / m_height;
-        //dy = dy * glm::pi<float>() * 2.f;
-        m_direction = glm::rotateX(-glm::vec4(m_direction, 0.f), dy * 0.01f);
+    x *= SENSITIVITY;
+    y *= SENSITIVITY;
 
-        //m_direction = glm::rotate(glm::mat4(1.0f), dy, m_right) * glm::vec4(m_direction, 1.f);
-        m_up = glm::normalize(-glm::cross(m_direction, m_right));
-    }
-    else if (x && 0){
-        float dx = x / m_width;
+    m_yaw   += x;
+    m_pitch += y;
 
-        //m_direction = glm::rotate(glm::mat4(1.0f), dx, m_up) * glm::vec4(m_direction, 1.f);
-        m_direction = glm::rotateY(glm::vec4(m_direction, 0.f), dx * 0.01f);
-        m_right = glm::normalize(-glm::cross(m_direction, m_up));
-    }
-    printf("Rotate after dir=(%f,%f,%f), up=(%f,%f,%f), right=(%f,%f,%f)\n", vec3log(m_direction), vec3log(m_up), vec3log(m_right));
+
+    if (m_pitch > 89.0f)
+        m_pitch = 89.0f;
+    if (m_pitch < -89.0f)
+        m_pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+    front.y = sin(glm::radians(m_pitch));
+    front.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+    m_direction = glm::normalize(front);
+
+    m_right = glm::normalize(glm::cross(m_direction, glm::vec3(0.f, 1.f, 0.f)));
+    m_up    = glm::normalize(glm::cross(m_right, m_direction));
 }
 
 void VulkanCamera::Move(int x, int y, int z){
-    const float moveSpeed = 0.25f;
     if (x){
-        m_position = m_position + m_right * (float)(x * moveSpeed);
+        m_disp += m_right * (float)(x * SPEED);
     }
     if (y){
-        m_position = m_position + m_up * (float)(y * moveSpeed);
+        m_disp += m_up * (float)(y * SPEED);
     }
     if (z){
-        m_position = m_position + m_direction * (float)(z * moveSpeed);
+        m_disp += m_direction * (float)(z * SPEED);
     }
+}
+
+void VulkanCamera::Update(float dt){
+    m_position += m_disp * dt;
+    m_disp = glm::vec3(0.f,0.f,0.f);
 }
 
 VulkanCamera::VulkanCamera(VulkanBackend * backend) :
@@ -54,9 +67,21 @@ void VulkanCamera::Initialize(uint32_t width, uint32_t height, const glm::vec3 &
     m_width = width;
     m_height = height;
     m_position = position;
-    m_direction = glm::normalize(direction);
-    m_right = glm::vec3(-1.f, 0.f, 0.f);
+    m_direction = direction;
+
     m_up = glm::vec3(0.f, 1.f, 0.f);
+    m_right = glm::normalize(glm::cross(m_up, m_direction));
+    m_yaw = YAW;
+    m_pitch = PITCH;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+    front.y = sin(glm::radians(m_pitch));
+    front.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+    m_direction = glm::normalize(front);
+ 
+    m_right = glm::normalize(glm::cross(m_direction, glm::vec3(0.f, 1.f, 0.f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+    m_up    = glm::normalize(glm::cross(m_right, m_direction));
 }
 
 void VulkanCamera::UpdateExtend(float width, float height){
@@ -65,7 +90,7 @@ void VulkanCamera::UpdateExtend(float width, float height){
 }
 
 glm::mat4x4 VulkanCamera::GetProjection() const{
-    return glm::perspective(glm::radians(45.0f), m_width / (float)m_height, 0.1f, 10.0f);
+    return glm::perspective(glm::radians(45.0f), m_width / (float)m_height, 0.1f, 75.0f);
 }
 
 glm::mat4x4 VulkanCamera::GetView() const{

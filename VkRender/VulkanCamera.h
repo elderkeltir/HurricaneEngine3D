@@ -11,6 +11,7 @@ class VulkanCamera : public iface::RenderCamera{
 public:
     void Rotate(float x, float y) override;
     void Move(int x, int y, int z) override;
+    void Update(float dt) override;
 
     VulkanCamera(VulkanBackend * backend);
     void Initialize(uint32_t width, uint32_t height, const glm::vec3 &position, const glm::vec3 &direction);
@@ -25,6 +26,9 @@ private:
     glm::vec3 m_direction;
     glm::vec3 m_up;
     glm::vec3 m_right;
+    glm::vec3 m_disp;
+    float m_yaw;
+    float m_pitch;
 
     VulkanBackend * r_backend;
 };
