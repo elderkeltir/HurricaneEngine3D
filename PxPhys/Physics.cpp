@@ -11,7 +11,9 @@ using namespace physx;
 PxDefaultErrorCallback gDefaultErrorCallback;
 PxDefaultAllocator gDefaultAllocatorCallback;
 
+// TODO:
 
+PxRigidDynamic * gBox;
 
 void PhysSDK::Init() {
     m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
@@ -36,6 +38,10 @@ void PhysSDK::Init() {
 
 	// Default material for now
     m_defaul_material = m_physics->createMaterial(0.5f, 0.5f, 0.1f);
+
+	PxVec3 linVel = PxVec3(0.f, 10.f, 0.f);
+	gBox = CreateBox(PxVec3(0.f, 0.f, 0.f), PxVec3(1.f, 1.f, 1.f), &linVel, 0.1, false);
+	gBox->addForce(PxVec3(0.f, 10.f, 0.f));
 }
 
 void PhysSDK::Shutdown() {
@@ -48,6 +54,9 @@ void PhysSDK::Simulate(float dt){
 
 	m_scene->simulate(dt);
     m_scene->fetchResults(true);
+
+	PxVec3 pose = gBox->getGlobalPose().p;
+	printf("After Sim: (%f,%f,%f)\n", pose.x, pose.y, pose.z);
 }
 
 void PhysSDK::CreateScene(){
