@@ -61,8 +61,8 @@ int main(int argc, const char** argv) {
 	int cycles = 0u;
 	float elapsed = 0.f;
 
-	PhysSDK p;
-	p.Init();
+	PhysSDK physEngine;
+	physEngine.Init();
 
 	VulkanBackend renderEngine;
 	renderEngine.Initialize(root_path.string().c_str());
@@ -77,9 +77,11 @@ int main(int argc, const char** argv) {
 			cycles = 0;
 			elapsed = 0.f;
 		}
+
+		physEngine.Simulate(delta);
 		renderEngine.Render(delta);
 	}
 	while(renderEngine.IsRunning());
 
-	p.Shutdown();
+	physEngine.Shutdown();
 }
