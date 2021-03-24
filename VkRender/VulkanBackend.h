@@ -32,6 +32,15 @@ DEFINE_HANDLE(VkPhysicalDevice)
 DEFINE_HANDLE(VkInstance)
 DEFINE_HANDLE(VkDevice)
 
+// TODO: remove this pls ASAP
+class RenderObject{
+public:
+    void SetMesh(VulkanMesh * mesh);
+    void Update(float *mx);
+private:
+    VulkanMesh * m_mesh;
+};
+
 class VKRENDER_EXPORTS VulkanBackend : public iface::RenderBackend {
 public:
     VulkanBackend();
@@ -41,8 +50,11 @@ public:
     void Initialize(const char * rootFolder) override final;
     void Render(float dt) override final;
     bool IsRunning() override final;
+    // TODO: temp
+    RenderObject * CreateObject(float* mx) override;
 
     VulkanCamera * GetCamera();
+    const char *GetRootPath() const;
 
     VulkanBackend(VulkanBackend&) = delete;
     VulkanBackend operator=(VulkanBackend&) = delete;

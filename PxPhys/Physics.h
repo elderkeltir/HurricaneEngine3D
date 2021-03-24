@@ -21,12 +21,23 @@ namespace physx{
 	class PxRigidDynamic;
 }
 
-class PXPHYS_EXPORTS PhysSDK {
+// TODO: clean up this shit
+class PhysicsObject {
+public:
+	void SetActor(physx::PxRigidDynamic* actor);
+	void GetMx(float *mx);
+private:
+	physx::PxRigidDynamic* m_actor;
+};
+
+ // TODO: implement iface!!
+class PXPHYS_EXPORTS PhysicsEngine {
 
 public:
 	void Init();
 	void Shutdown();
 	void Simulate(float dt);
+	PhysicsObject *CreateObject(float x, float y, float z, bool kin);
 private:
 	void CreateScene();
 	physx::PxRigidDynamic* CreateBox(const physx::PxVec3& pos, const physx::PxVec3& dims, const physx::PxVec3* linVel, double density, bool kin);
