@@ -18,6 +18,8 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <string>
 
+#include <glm/gtx/quaternion.hpp>
+
 VulkanMesh::VulkanMesh(VulkanBackend * backend) : 
 	r_device(nullptr),
 	m_pipelineType(iface::RenderPipelineCollection::PipelineType::PT_size),
@@ -58,6 +60,7 @@ VulkanMesh::VulkanMesh(VulkanMesh && other){
 	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
 	std::swap(this->m_color, other.m_color);
 	std::swap(this->r_backend, other.r_backend);
+	std::swap(this->m_model, other.m_model);
 }
 
 VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
@@ -75,8 +78,25 @@ VulkanMesh& VulkanMesh::operator=(VulkanMesh&& other){
 	std::swap(this->r_pipelineCollection, other.r_pipelineCollection);
 	std::swap(this->m_color, other.m_color);
 	std::swap(this->r_backend, other.r_backend);
+	std::swap(this->m_model, other.m_model);
 
 	return *this;
+}
+
+// TODO:
+void VulkanMesh::UpdateModelMx(float * mx){
+	glm::vec3 p(mx[4], mx[5], mx[6]);
+	glm::quat q(mx[0], mx[1], mx[2], mx[3]);
+
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, p);
+	glm::mat4 RotationMatrix = glm::toMat4(q);
+
+	m_model = model * RotationMatrix;
+
+	printf("got %p p=(%f, %f, %f)\n", this, vec3log(p));
+	auto pos = glm::vec3(m_model[3]);
+	//printf("m_model AFTER = (%f, %f, %f)\n", vec3log(pos));
 }
 
 void VulkanMesh::Initialize(const char *path,
@@ -226,13 +246,15 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	static float time = dt;
 	time+=dt;
 	UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	ubo.model = m_model;
+	auto pos = glm::vec3(m_model[3]);
+	printf("m_model %p = (%f, %f, %f)\n", this, vec3log(pos));
 	ubo.proj = r_backend->GetCamera()->GetProjection(); // TODO: move away to scene UBO when scene is implemented
 	ubo.view = r_backend->GetCamera()->GetView();
 
-	auto proj = glm::perspective(glm::radians(45.0f), 1024 / (float) 768, 0.1f, 10.0f); // TODO: move to Camera
+	auto proj = glm::perspective(glm::radians(45.0f), 1280 / (float) 720, 0.1f, 10.0f); // TODO: move to Camera
 	auto view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);

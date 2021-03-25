@@ -23,7 +23,9 @@ include_directories(${ROOT_FOLDER}/include)
 include_directories(${ROOT_FOLDER}/PxPhys)
 include_directories(${ROOT_FOLDER}/VkRender)
 
-add_executable(${PROJECT_NAME} main.cpp
+add_executable(${PROJECT_NAME} 
+    main.cpp
+    Engine.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PxPhys)

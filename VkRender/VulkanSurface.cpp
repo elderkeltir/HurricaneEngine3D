@@ -79,7 +79,7 @@ void VulkanSurface::Initialize(VkInstance instance, VkPhysicalDevice physicalDev
 
     // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	m_window = glfwCreateWindow(1024, 768, "VkRender", 0, 0); // TODO: fix hardcodeed values
+	m_window = glfwCreateWindow(1280, 720, "VkRender", 0, 0); // TODO: fix hardcodeed values
     assert(m_window);
 
     // create surface

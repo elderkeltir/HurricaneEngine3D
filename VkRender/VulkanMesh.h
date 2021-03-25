@@ -43,6 +43,8 @@ public:
                     uint32_t imageCount); // TODO: time to get a structure for intialization(vulkan-like?)
     void Render(float dt, VkCommandBuffer commandBuffer, uint32_t imageIndex);
     iface::RenderPipelineCollection::PipelineType GetPipelineType() const;
+    //TODO: nooooooo god noooo
+    void UpdateModelMx(float * mx);
 
     VulkanMesh(VulkanMesh&&);
     VulkanMesh& operator=(VulkanMesh&&);
@@ -74,4 +76,7 @@ private:
     VulkanPipelineCollection *r_pipelineCollection;
     VkDevice r_device;
     VulkanBackend * r_backend;
+
+    // TODO:
+    glm::mat4 m_model;
 };

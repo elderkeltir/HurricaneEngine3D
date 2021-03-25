@@ -1,5 +1,7 @@
 #pragma once
 
+class RenderObject; // TODO
+
 namespace iface{
     struct RenderBackend{
         RenderBackend() = default;
@@ -8,5 +10,7 @@ namespace iface{
         virtual bool IsRunning() = 0;
         virtual ~RenderBackend() {};
 
+        // TODO: forgive me lord
+        virtual RenderObject * CreateObject(float* mx) = 0;
     };
 }

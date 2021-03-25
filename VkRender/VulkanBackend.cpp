@@ -23,6 +23,15 @@
 #include <Windows.h>
 #endif
 
+void RenderObject::SetMesh(VulkanMesh * mesh)
+{
+	m_mesh = mesh;
+}
+
+void RenderObject::Update(float *mx){
+	m_mesh->UpdateModelMx(mx);
+}
+
 static uint64_t frame = 0;
 
 #ifdef _DEBUG
@@ -188,17 +197,19 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/mesh/Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 #endif //_WIN32
-	{
-		VulkanMesh mesh(this);
-		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
-		m_meshes.push_back(std::move(mesh));
-	}
-	{
-		VulkanMesh mesh(this);
-		obj_path = root_path.string() + "/content/Primitives/capsule.obj";
-		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
-		m_meshes.push_back(std::move(mesh));
-	}
+
+	m_meshes.reserve(32);
+	// {
+	// 	VulkanMesh mesh(this);
+	// 	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
+	// 	m_meshes.push_back(std::move(mesh));
+	// }
+	// {
+	// 	VulkanMesh mesh(this);
+	// 	obj_path = root_path.string() + "/content/Primitives/capsule.obj";
+	// 	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
+	// 	m_meshes.push_back(std::move(mesh));
+	// }
 }
 
 void VulkanBackend::Render(float dt){
@@ -243,8 +254,27 @@ bool VulkanBackend::IsRunning(){
 	return m_surface->PollWindowEvents();
 }
 
+RenderObject * VulkanBackend::CreateObject(float* mx){
+	VulkanMesh mesh(this);
+
+	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
+	std::string obj_path = root_path.string() + "/content/Primitives/box.obj";
+	mesh.Initialize(obj_path.c_str(), "", m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
+	mesh.UpdateModelMx(mx);
+	m_meshes.push_back(std::move(mesh));
+	RenderObject *obj = new RenderObject;
+	VulkanMesh * meshP = &(m_meshes.back()); // TODO: very bad, vector can reallocate it's buffer
+	obj->SetMesh(meshP);
+
+	return obj;
+}
+
 VulkanCamera * VulkanBackend::GetCamera(){
 	return m_camera;
+}
+
+const char *VulkanBackend::GetRootPath() const{
+	return m_rootFolder;
 }
 
 void VulkanBackend::CreateInstance(){
