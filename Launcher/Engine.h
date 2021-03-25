@@ -17,6 +17,7 @@ private:
     struct Object{
         RenderObject *rObject;
         PhysicsObject *pObject;
+        void Release(PhysicsEngine * physEng);
     };
     std::vector<Engine::Object> m_objects;
     std::string m_rootPath;

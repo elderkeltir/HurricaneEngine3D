@@ -23,6 +23,7 @@ namespace physx{
 
 // TODO: clean up this shit
 class PhysicsObject {
+	friend class PhysicsEngine;
 public:
 	void SetActor(physx::PxRigidDynamic* actor);
 	void GetMx(float *mx);
@@ -38,6 +39,7 @@ public:
 	void Shutdown();
 	void Simulate(float dt);
 	PhysicsObject *CreateObject(float x, float y, float z, bool kin);
+	void DestroyObject(PhysicsObject *obj);
 private:
 	void CreateScene();
 	physx::PxRigidDynamic* CreateBox(const physx::PxVec3& pos, const physx::PxVec3& dims, const physx::PxVec3* linVel, double density, bool kin);

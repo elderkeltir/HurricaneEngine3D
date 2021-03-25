@@ -25,6 +25,10 @@ void PhysicsObject::SetActor(physx::PxRigidDynamic* actor)
 {
 	m_actor = actor;
 }
+void PhysicsEngine::DestroyObject(PhysicsObject *obj){
+	PxSceneWriteLock scopedLock(*m_scene);
+	obj->m_actor->release();
+}
 //
 
 void PhysicsEngine::Init() {

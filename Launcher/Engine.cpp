@@ -69,6 +69,9 @@ void Engine::Run(){
 }
 
 void Engine::Shutdown(){
+    for (auto& obj : m_objects){
+        obj.Release(m_physicsEngine);
+    }
     m_physicsEngine->Shutdown();
     delete m_physicsEngine;
     m_physicsEngine = nullptr;
@@ -77,7 +80,9 @@ void Engine::Shutdown(){
 }
 
 	
-
+void Engine::Object::Release(PhysicsEngine * physEng){
+    physEng->DestroyObject(this->pObject);
+}
 	
 
 	
