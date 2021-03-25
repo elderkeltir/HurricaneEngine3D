@@ -13,18 +13,6 @@ void Engine::Initialize(const char * rootPath)
     m_physicsEngine->Init();
     m_renderEngine->Initialize(m_rootPath.c_str());
 
-
-    {
-        PhysicsObject *box2 = m_physicsEngine->CreateObject(0.f, -1.f, 0.f, true);
-        float mx2[7];
-        box2->GetMx(mx2);
-
-        RenderObject *rBox2 = m_renderEngine->CreateObject(mx2);
-        Object obj2;
-        obj2.pObject = box2;
-        obj2.rObject = rBox2;
-        m_objects.push_back(obj2);
-    }
     {
         PhysicsObject *box1 = m_physicsEngine->CreateObject(0.f, 1.f, 0.f, false);
         float mx1[7];
@@ -36,6 +24,18 @@ void Engine::Initialize(const char * rootPath)
         obj1.rObject = rBox1;
         m_objects.push_back(obj1);
     }
+    {
+        PhysicsObject *box2 = m_physicsEngine->CreateObject(0.f, -1.f, 0.f, true);
+        float mx2[7];
+        box2->GetMx(mx2);
+
+        RenderObject *rBox2 = m_renderEngine->CreateObject(mx2);
+        Object obj2;
+        obj2.pObject = box2;
+        obj2.rObject = rBox2;
+        m_objects.push_back(obj2);
+    }
+
 }
 
 void Engine::Run(){

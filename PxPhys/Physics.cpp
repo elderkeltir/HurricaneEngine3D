@@ -57,6 +57,7 @@ void PhysicsEngine::Init() {
 }
 
 void PhysicsEngine::Shutdown() {
+	m_scene->release();
     m_physics->release();
     m_foundation->release();
 }

@@ -197,6 +197,8 @@ void VulkanBackend::Initialize(const char * rootFolder){
 	std::string obj_path = root_path.string() + "/content/Madara_Uchiha/mesh/Madara_Uchiha.obj";
 	std::string texturePath = root_path.string() + "/content/Madara_Uchiha/textures/_Madara_texture_main_mAIN.png";
 #endif //_WIN32
+
+	m_meshes.reserve(32);
 	// {
 	// 	VulkanMesh mesh(this);
 	// 	mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
@@ -261,7 +263,8 @@ RenderObject * VulkanBackend::CreateObject(float* mx){
 	mesh.UpdateModelMx(mx);
 	m_meshes.push_back(std::move(mesh));
 	RenderObject *obj = new RenderObject;
-	obj->SetMesh(&(m_meshes.back()));
+	VulkanMesh * meshP = &(m_meshes.back()); // TODO: very bad, vector can reallocate it's buffer
+	obj->SetMesh(meshP);
 
 	return obj;
 }

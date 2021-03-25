@@ -11,6 +11,9 @@
 #define PXPHYS_EXPORTS
 #endif
 
+#define PX_CHECKED 1
+#define PX_DEBUG 1
+
 namespace physx{
 	class PxFoundation;
 	class PxPhysics;
