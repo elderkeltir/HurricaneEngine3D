@@ -33,7 +33,7 @@ DEFINE_HANDLE(VkInstance)
 DEFINE_HANDLE(VkDevice)
 
 // TODO: remove this pls ASAP
-class RenderObject{
+class VKRENDER_EXPORTS RenderObject{
 public:
     void SetMesh(VulkanMesh * mesh);
     void Update(float *mx);

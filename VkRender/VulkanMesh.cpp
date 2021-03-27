@@ -253,8 +253,8 @@ void VulkanMesh::UpdateUniformBuffers(float dt, uint32_t imageIndex){
 	ubo.proj = r_backend->GetCamera()->GetProjection(); // TODO: move away to scene UBO when scene is implemented
 	ubo.view = r_backend->GetCamera()->GetView();
 
-	auto proj = glm::perspective(glm::radians(45.0f), 1280 / (float) 720, 0.1f, 10.0f); // TODO: move to Camera
-	auto view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//ubo.proj = glm::perspective(glm::radians(45.0f), 1280 / (float) 720, 0.1f, 10.0f); // TODO: move to Camera
+	//ubo.view = glm::lookAt(glm::vec3(5.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	void* data;
 	vkMapMemory(r_device, m_uniformBuffers[imageIndex].memoryRef, m_uniformBuffers[imageIndex].offset, m_uniformBuffers[imageIndex].size, 0, &data);

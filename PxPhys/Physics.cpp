@@ -1,8 +1,11 @@
 #include "Physics.h"
+#include "CharacterController.h"
 
-#include "PxPhysicsAPI.h"
-#include "PxScene.h"
-#include "PxRigidDynamic.h"
+#include <PxPhysicsAPI.h>
+#include <PxScene.h>
+#include <PxRigidDynamic.h>
+#include <characterkinematic/PxController.h>
+#include <characterkinematic/PxControllerManager.h>
 
 #include <cassert>
 
@@ -38,13 +41,12 @@ void PhysicsEngine::Init() {
 
     bool recordMemoryAllocations = true;
 
-    //mPvd = PxCreatePvd(*m_foundation);
-    //PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-    //mPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
-
+    m_pvd = PxCreatePvd(*m_foundation);
+    m_transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+    m_pvd->connect(*m_transport, PxPvdInstrumentationFlag::eALL);
 
     m_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_foundation,
-        PxTolerancesScale(), recordMemoryAllocations, /*mPvd*/nullptr);
+        PxTolerancesScale(), recordMemoryAllocations, m_pvd);
     if (!m_physics)
         printf("PxCreatePhysics failed!");
 
@@ -54,11 +56,35 @@ void PhysicsEngine::Init() {
 	gSceneHack = m_scene;
 	// Default material for now
     m_defaul_material = m_physics->createMaterial(0.5f, 0.5f, 0.1f);
+
+	m_characterControllerMgr = PxCreateControllerManager(*m_scene);
+	assert(m_characterControllerMgr);
+
+	PxCapsuleControllerDesc cctDesc;
+	cctDesc.height				= 1.f;;
+	cctDesc.radius				= 0.4f;
+	cctDesc.material				= m_defaul_material;
+	cctDesc.position				= PxExtendedVec3(0.,0.,0.);
+	cctDesc.slopeLimit			= 0.f;
+	cctDesc.contactOffset			= 0.1f;
+	cctDesc.stepOffset			= 0.f;
+	cctDesc.invisibleWallHeight	= 5.f;
+	cctDesc.maxJumpHeight			= 5.f;
+	//cDesc.reportCallback		= this;
+	//PxController* cct = m_characterControllerMgr->createController(cctDesc);
+	//m_characterController = new CharacterController;
+	//m_characterController->Initialize(cct);
 }
 
 void PhysicsEngine::Shutdown() {
+	m_characterControllerMgr->purgeControllers();
+	//delete m_characterController;
+	//m_characterController = 0;
+	m_characterControllerMgr->release();
 	m_scene->release();
     m_physics->release();
+	m_pvd->release();
+	m_transport->release();
     m_foundation->release();
 }
 

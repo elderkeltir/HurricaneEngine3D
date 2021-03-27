@@ -29,7 +29,9 @@ include_directories(${ROOT_FOLDER}/include)
 include_directories(${PHYSX_FOLDER}/physx/include)
 include_directories(${PHYSX_FOLDER}/pxshared/include)
 
-add_library(${PROJECT_NAME} SHARED Physics.cpp
+add_library(${PROJECT_NAME} SHARED 
+    Physics.cpp
+    CharacterController.cpp
 )
 
 if (WIN32)
@@ -39,6 +41,7 @@ if (WIN32)
     target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXCommon_64.lib)
     target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXFoundation_64.lib)
     target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXExtensions_static_64.lib)
+    target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXCharacterKinematic_static_64.lib)
     target_link_libraries(${PROJECT_NAME} ${PHYSX_BIN_FOLDER}/PhysXPvdSDK_static_64.lib)
 
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
