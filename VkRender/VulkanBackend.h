@@ -33,7 +33,7 @@ DEFINE_HANDLE(VkInstance)
 DEFINE_HANDLE(VkDevice)
 
 // TODO: remove this pls ASAP
-class RenderObject{
+class VKRENDER_EXPORTS RenderObject{
 public:
     void SetMesh(VulkanMesh * mesh);
     void Update(float *mx);
@@ -51,7 +51,7 @@ public:
     void Render(float dt) override final;
     bool IsRunning() override final;
     // TODO: temp
-    RenderObject * CreateObject(float* mx) override;
+    RenderObject * CreateObject(float* mx, bool texturedMesh) override;
 
     VulkanCamera * GetCamera();
     const char *GetRootPath() const;

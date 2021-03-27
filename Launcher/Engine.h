@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <string>
 
@@ -20,6 +22,7 @@ private:
         void Release(PhysicsEngine * physEng);
     };
     std::vector<Engine::Object> m_objects;
+    RenderObject* m_character;
     std::string m_rootPath;
 
     PhysicsEngine *m_physicsEngine;
