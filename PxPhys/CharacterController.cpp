@@ -10,7 +10,7 @@ void CharacterController::Initialize(PxController* cct){
 
 void CharacterController::Move(const PxVec3 &disp, float dt, bool jump){
     PxControllerFilters filter;
-    m_cct->move(PxVec3(0.0f, -0.1f, 0.0f),0.f, dt, filter);
+    m_cct->move(PxVec3(0.1f * dt, -0.1f, 0.0f),0.f, dt, filter);
 }
 
 physx::PxVec3 CharacterController::GetPosition() const{

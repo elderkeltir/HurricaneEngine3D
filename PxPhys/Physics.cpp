@@ -116,6 +116,17 @@ PhysicsObject *PhysicsEngine::CreateObject(float x, float y, float z, float pos_
 	return obj;
 }
 
+void PhysicsEngine::GetCharacterPos(float &x, float &y, float  &z) const{
+	PxVec3 pos = m_characterController->GetPosition();
+	x = pos.x;
+	y = pos.y;
+	z = pos.z;
+}
+
+void PhysicsEngine::MoveCharacter(float x, float y, float z, float dt){
+	m_characterController->Move(PxVec3(x, y, z), dt, false);
+}
+
 void PhysicsEngine::CreateScene(){
     PxSceneDesc sceneDesc(m_physics->getTolerancesScale());
     sceneDesc.setToDefault(m_physics->getTolerancesScale());

@@ -51,7 +51,7 @@ public:
     void Render(float dt) override final;
     bool IsRunning() override final;
     // TODO: temp
-    RenderObject * CreateObject(float* mx) override;
+    RenderObject * CreateObject(float* mx, bool texturedMesh) override;
 
     VulkanCamera * GetCamera();
     const char *GetRootPath() const;

@@ -30,14 +30,27 @@ void Engine::Initialize(const char * rootPath)
         float mx2[10];
         box2->GetMx(mx2);
 
-        RenderObject *rBox2 = m_renderEngine->CreateObject(mx2);
+        RenderObject *rBox2 = m_renderEngine->CreateObject(mx2, false);
         Object obj2;
         obj2.pObject = box2;
         obj2.rObject = rBox2;
         m_objects.push_back(obj2);
     }
     {
-
+        float x,y,z;
+        m_physicsEngine->GetCharacterPos(x, y, z);
+        float mx2[10];
+        mx2[0] = 0;
+        mx2[1] = 0;
+        mx2[2] = 1;
+        mx2[3] = 0;
+        mx2[4] = x;
+        mx2[5] = y;
+        mx2[6] = z;
+        mx2[7] = 1;
+        mx2[8] = 1;
+        mx2[9] = 1;
+        m_character = m_renderEngine->CreateObject(mx2, true);
     }
 }
 
@@ -57,6 +70,24 @@ void Engine::Run(){
 			cycles = 0;
 			elapsed = 0.f;
 		}
+        {
+            m_physicsEngine->MoveCharacter(0,0,0,delta);
+
+            float x,y,z;
+            m_physicsEngine->GetCharacterPos(x, y, z);
+            float mx2[10];
+            mx2[0] = 0;
+            mx2[1] = 0;
+            mx2[2] = 1;
+            mx2[3] = 0;
+            mx2[4] = x;
+            mx2[5] = y;
+            mx2[6] = z;
+            mx2[7] = 1;
+            mx2[8] = 1;
+            mx2[9] = 1;
+            m_character->Update(mx2);
+        }
 
 		m_physicsEngine->Simulate(delta);
 
@@ -65,7 +96,7 @@ void Engine::Run(){
             obj.pObject->GetMx(mx);
             obj.rObject->Update(mx);
         }
-        
+
 		m_renderEngine->Render(delta);
 	}
     while(m_renderEngine->IsRunning());

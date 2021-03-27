@@ -254,14 +254,24 @@ bool VulkanBackend::IsRunning(){
 	return m_surface->PollWindowEvents();
 }
 
-RenderObject * VulkanBackend::CreateObject(float* mx){
+RenderObject * VulkanBackend::CreateObject(float* mx, bool texturedMesh){
 	VulkanMesh mesh(this);
+	if (texturedMesh){
+		std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
+		std::string obj_path = root_path.string() + "\\content\\Madara_Uchiha\\mesh\\Madara_Uchiha.obj";
+		std::string texturePath = root_path.string() + "\\content\\Madara_Uchiha\\textures\\_Madara_texture_main_mAIN.png";
+		mesh.Initialize(obj_path.c_str(), texturePath.c_str(), m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_mesh, m_pipelineCollection, m_bufferSize);
+		mesh.UpdateModelMx(mx);
+		m_meshes.push_back(std::move(mesh));
+	}
+	else{
+		std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
+		std::string obj_path = root_path.string() + "/content/Primitives/box.obj";
+		mesh.Initialize(obj_path.c_str(), "", m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
+		mesh.UpdateModelMx(mx);
+		m_meshes.push_back(std::move(mesh));
+	}
 
-	std::filesystem::path root_path = std::filesystem::path(m_rootFolder);
-	std::string obj_path = root_path.string() + "/content/Primitives/box.obj";
-	mesh.Initialize(obj_path.c_str(), "", m_memoryMgr, m_cmdQueueDispatcher, m_device, m_descriptorSetOrganizer->GetDescriptorPool(), VulkanPipelineCollection::PipelineType::PT_primitive, m_pipelineCollection, m_bufferSize);
-	mesh.UpdateModelMx(mx);
-	m_meshes.push_back(std::move(mesh));
 	RenderObject *obj = new RenderObject;
 	VulkanMesh * meshP = &(m_meshes.back()); // TODO: very bad, vector can reallocate it's buffer
 	obj->SetMesh(meshP);

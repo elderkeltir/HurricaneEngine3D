@@ -53,6 +53,8 @@ public:
 	void Simulate(float dt);
 	PhysicsObject *CreateObject(float x, float y, float z, float pos_x, float pos_y, float pos_z, bool kin);
 	void DestroyObject(PhysicsObject *obj);
+	void GetCharacterPos(float &x, float &y, float  &z) const;
+	void MoveCharacter(float x, float y, float z, float dt);
 
 private:
 	void CreateScene();

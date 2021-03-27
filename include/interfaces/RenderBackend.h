@@ -11,6 +11,6 @@ namespace iface{
         virtual ~RenderBackend() {};
 
         // TODO: forgive me lord
-        virtual RenderObject * CreateObject(float* mx) = 0;
+        virtual RenderObject * CreateObject(float* mx, bool texturedMesh) = 0;
     };
 }
