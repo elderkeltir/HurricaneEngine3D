@@ -20,6 +20,13 @@ void PhysicsObject::GetMx(float * mx){
 	PxSceneWriteLock scopedLock(*gSceneHack);
 	PxTransform xform = m_actor->getGlobalPose();
 	memcpy(mx, &xform, 7 * sizeof(float));
+	PxShape* shape;
+	m_actor->getShapes(&shape, 1, 0);
+	PxBoxGeometry box = shape->getGeometry().box();
+	PxVec3 scale = box.halfExtents * 2;
+	mx[7] = scale.x;
+	mx[8] = scale.y;
+	mx[9] = scale.z;
 
 	PxVec3 pose = xform.p;
 	printf("After Sim: (%f,%f,%f)\n", pose.x, pose.y, pose.z);
@@ -64,22 +71,22 @@ void PhysicsEngine::Init() {
 	cctDesc.height				= 1.f;;
 	cctDesc.radius				= 0.4f;
 	cctDesc.material				= m_defaul_material;
-	cctDesc.position				= PxExtendedVec3(0.,0.,0.);
+	cctDesc.position				= PxExtendedVec3(0.,3.,0.);
 	cctDesc.slopeLimit			= 0.f;
 	cctDesc.contactOffset			= 0.1f;
 	cctDesc.stepOffset			= 0.f;
 	cctDesc.invisibleWallHeight	= 5.f;
 	cctDesc.maxJumpHeight			= 5.f;
 	//cDesc.reportCallback		= this;
-	//PxController* cct = m_characterControllerMgr->createController(cctDesc);
-	//m_characterController = new CharacterController;
-	//m_characterController->Initialize(cct);
+	PxController* cct = m_characterControllerMgr->createController(cctDesc);
+	m_characterController = new CharacterController;
+	m_characterController->Initialize(cct);
 }
 
 void PhysicsEngine::Shutdown() {
 	m_characterControllerMgr->purgeControllers();
-	//delete m_characterController;
-	//m_characterController = 0;
+	delete m_characterController;
+	m_characterController = 0;
 	m_characterControllerMgr->release();
 	m_scene->release();
     m_physics->release();
@@ -90,15 +97,16 @@ void PhysicsEngine::Shutdown() {
 
 void PhysicsEngine::Simulate(float dt){
 	PxSceneWriteLock scopedLock(*m_scene);
+	m_characterController->Move(PxVec3(1.f, 1.f, 1.f), dt, false);
 
 	m_scene->simulate(dt);
     m_scene->fetchResults(true);
 }
 
-PhysicsObject *PhysicsEngine::CreateObject(float x, float y, float z, bool kin){
+PhysicsObject *PhysicsEngine::CreateObject(float x, float y, float z, float pos_x, float pos_y, float pos_z, bool kin){
 	PxVec3 linvel = PxVec3(0.f, 10.f, 0.f);
-	PxVec3 ext = PxVec3(1.f, 1.f, 1.f);
-	PxRigidDynamic * box = CreateBox(PxVec3(x, y, z), ext, kin ? nullptr : &linvel, 0.1, kin);
+	PxVec3 ext = PxVec3(x, y, z);
+	PxRigidDynamic * box = CreateBox(PxVec3(pos_x, pos_y, pos_z), ext, kin ? nullptr : &linvel, 0.1, kin);
 	PxSceneWriteLock scopedLock(*m_scene);
 	if (!kin)
 		box->addForce(PxVec3(0.f, 10.f, 0.f));

@@ -51,7 +51,7 @@ public:
 	void Init();
 	void Shutdown();
 	void Simulate(float dt);
-	PhysicsObject *CreateObject(float x, float y, float z, bool kin);
+	PhysicsObject *CreateObject(float x, float y, float z, float pos_x, float pos_y, float pos_z, bool kin);
 	void DestroyObject(PhysicsObject *obj);
 
 private:

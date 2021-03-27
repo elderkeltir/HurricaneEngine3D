@@ -182,7 +182,7 @@ void VulkanBackend::Initialize(const char * rootFolder){
 
 	// Camera
 	m_camera = new VulkanCamera(this);
-	glm::vec3 pos(-2.0f, 0.0f, 8.0f);
+	glm::vec3 pos(5.0f, 12.0f, 38.0f);
 	glm::vec3 dir(-5.0f, -5.0f, 5.0f);
 	m_camera->Initialize(windowWidth, windowHeight, pos, dir);
 
