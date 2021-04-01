@@ -1,14 +1,14 @@
 #pragma once
 #ifdef _WIN32
 #define WIN64
-#ifdef PXPHYS_EXPORTS
-#undef PXPHYS_EXPORTS
-#define PXPHYS_EXPORTS __declspec(dllexport)
+#ifdef PHYS_EXPORTS
+#undef PHYS_EXPORTS
+#define PHYS_EXPORTS __declspec(dllexport)
 #else
-#define PXPHYS_EXPORTS __declspec(dllimport)
+#define PHYS_EXPORTS __declspec(dllimport)
 #endif
 #else
-#define PXPHYS_EXPORTS
+#define PHYS_EXPORTS
 #endif
 
 #define PX_CHECKED 1
@@ -31,7 +31,7 @@ namespace physx
 class CharacterController;
 
 // TODO: clean up this shit
-class PXPHYS_EXPORTS PhysicsObject
+class PHYS_EXPORTS PhysicsObject
 {
 	friend class PhysicsEngine;
 
@@ -44,7 +44,7 @@ private:
 };
 
 // TODO: implement iface!!
-class PXPHYS_EXPORTS PhysicsEngine
+class PHYS_EXPORTS PhysicsEngine
 {
 
 public:

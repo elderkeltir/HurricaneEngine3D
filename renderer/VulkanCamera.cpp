@@ -69,8 +69,8 @@ VulkanCamera::VulkanCamera(VulkanBackend *backend) :
     m_up(glm::vec3(0.f)),
     m_right(glm::vec3(0.f)),
     m_disp(glm::vec3(0.f)),
-    m_yaw(~0u),
-    m_pitch(~0u)
+    m_yaw(0.f),
+    m_pitch(0.f)
 {
 }
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(VkRender)
+project(renderer)
 
 set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
 set(EXTERN_FOLDER ${ROOT_FOLDER}/extern)
@@ -17,7 +17,7 @@ if (WIN32)
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
     add_definitions(-DNOMINMAX)
-    add_definitions(-DVKRENDER_EXPORTS)
+    add_definitions(-DRENDERER_EXPORTS)
 elseif (APPLE)
     add_definitions(-DVK_USE_PLATFORM_METAL_EXT)
     add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
