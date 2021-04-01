@@ -1,14 +1,14 @@
 #pragma once
 
 #ifdef _WIN32
-#ifdef VKRENDER_EXPORTS	
-#undef VKRENDER_EXPORTS	
-#define VKRENDER_EXPORTS __declspec(dllexport)	
+#ifdef RENDERER_EXPORTS	
+#undef RENDERER_EXPORTS	
+#define RENDERER_EXPORTS __declspec(dllexport)	
 #else	
-#define VKRENDER_EXPORTS __declspec(dllimport)	
+#define RENDERER_EXPORTS __declspec(dllimport)	
 #endif
 #else 
-#define VKRENDER_EXPORTS
+#define RENDERER_EXPORTS
 #endif
 
 #include "interfaces/RenderBackend.h"
@@ -33,7 +33,7 @@ DEFINE_HANDLE(VkInstance)
 DEFINE_HANDLE(VkDevice)
 
 // TODO: remove this pls ASAP
-class VKRENDER_EXPORTS RenderObject{
+class RENDERER_EXPORTS RenderObject{
 public:
     void SetMesh(VulkanMesh * mesh);
     void Update(float *mx);
@@ -41,7 +41,7 @@ private:
     VulkanMesh * m_mesh;
 };
 
-class VKRENDER_EXPORTS VulkanBackend : public iface::RenderBackend {
+class RENDERER_EXPORTS VulkanBackend : public iface::RenderBackend {
 public:
     VulkanBackend();
     ~VulkanBackend() override;

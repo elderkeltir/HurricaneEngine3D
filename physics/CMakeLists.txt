@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(PxPhys)
+project(physics)
 
 set(ROOT_FOLDER ${PROJECT_SOURCE_DIR}/..)
 set(EXTERN_FOLDER ${ROOT_FOLDER}/extern)
@@ -10,7 +10,7 @@ if (WIN32)
     add_definitions(-DWIN32)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
     add_definitions(-DNOMINMAX)
-    add_definitions(-DPXPHYS_EXPORTS)
+    add_definitions(-DPHYS_EXPORTS)
     set(PHYSX_BIN_FOLDER ${PHYSX_FOLDER}/physx/bin/win.x86_64.vc142.mt/debug)
 elseif (APPLE)
     add_definitions(-DAPPLE)

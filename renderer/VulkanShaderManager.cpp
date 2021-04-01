@@ -46,8 +46,8 @@ void VulkanShaderManager::Initialize(VkDevice device, const char * folderPath){
     strcpy(m_folderPath, folderPath);
     std::filesystem::path root_path = std::filesystem::path(m_folderPath);
 	{
-		std::string vert_shader_path = root_path.string() + "/VkRender/shaders/triangle.vert.spv";
-		std::string frag_shader_path = root_path.string() + "/VkRender/shaders/triangle.frag.spv";
+		std::string vert_shader_path = root_path.string() + "/renderer/shaders/triangle.vert.spv";
+		std::string frag_shader_path = root_path.string() + "/renderer/shaders/triangle.frag.spv";
 		VkShaderModule vs = LoadShader(vert_shader_path.c_str());
 		assert(vs);
 		VkShaderModule fs = LoadShader(frag_shader_path.c_str());
@@ -57,8 +57,8 @@ void VulkanShaderManager::Initialize(VkDevice device, const char * folderPath){
 		m_shaderDB->m_db.at(VulkanPipelineCollection::PipelineType::PT_mesh).m_DBslices.at(ShaderType::ST_fragment).m_shadetTypeSlices.push_back(fs);
 	}
 	{
-		std::string vert_shader_path = root_path.string() + "/VkRender/shaders/triangle-primitive.vert.spv";
-		std::string frag_shader_path = root_path.string() + "/VkRender/shaders/triangle-primitive.frag.spv";
+		std::string vert_shader_path = root_path.string() + "/renderer/shaders/triangle-primitive.vert.spv";
+		std::string frag_shader_path = root_path.string() + "/renderer/shaders/triangle-primitive.frag.spv";
 		VkShaderModule vs = LoadShader(vert_shader_path.c_str());
 		assert(vs);
 		VkShaderModule fs = LoadShader(frag_shader_path.c_str());
