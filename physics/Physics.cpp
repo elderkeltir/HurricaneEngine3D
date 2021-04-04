@@ -14,6 +14,17 @@ using namespace physx;
 PxDefaultErrorCallback gDefaultErrorCallback;
 PxDefaultAllocator gDefaultAllocatorCallback;
 
+// Asserts
+class asserts_class : public PxAssertHandler
+{
+public:
+	virtual void operator()(const char* exp, const char* file, int line, bool& ignore) override{
+		assert(false);
+	}
+};
+
+asserts_class ass;
+
 // TODO:
 PxScene * gSceneHack;
 void PhysicsObject::GetMx(float * mx){
@@ -29,7 +40,7 @@ void PhysicsObject::GetMx(float * mx){
 	mx[9] = scale.z;
 
 	PxVec3 pose = xform.p;
-	printf("After Sim: (%f,%f,%f)\n", pose.x, pose.y, pose.z);
+	//printf("After Sim: (%f,%f,%f)\n", pose.x, pose.y, pose.z);
 }
 void PhysicsObject::SetActor(physx::PxRigidDynamic* actor)
 {
@@ -66,7 +77,8 @@ void PhysicsEngine::Init() {
 
 	m_characterControllerMgr = PxCreateControllerManager(*m_scene);
 	assert(m_characterControllerMgr);
-
+	
+	PxSceneWriteLock scopedLock(*m_scene);
 	PxCapsuleControllerDesc cctDesc;
 	cctDesc.height				= 1.f;;
 	cctDesc.radius				= 0.4f;
@@ -80,14 +92,21 @@ void PhysicsEngine::Init() {
 	//cDesc.reportCallback		= this;
 	PxController* cct = m_characterControllerMgr->createController(cctDesc);
 	m_characterController = new CharacterController;
-	m_characterController->Initialize(cct);
+	m_characterController->Initialize(cct, m_scene);
+
+
+	PxSetAssertHandler(ass);
 }
 
 void PhysicsEngine::Shutdown() {
-	m_characterControllerMgr->purgeControllers();
-	delete m_characterController;
-	m_characterController = 0;
-	m_characterControllerMgr->release();
+	{
+		PxSceneWriteLock scopedLock(*m_scene);
+		m_characterControllerMgr->purgeControllers();
+		delete m_characterController;
+		m_characterController = 0;
+		m_characterControllerMgr->release();
+	}
+
 	m_scene->release();
     m_physics->release();
 	m_pvd->release();
@@ -97,7 +116,6 @@ void PhysicsEngine::Shutdown() {
 
 void PhysicsEngine::Simulate(float dt){
 	PxSceneWriteLock scopedLock(*m_scene);
-	m_characterController->Move(PxVec3(1.f, 1.f, 1.f), dt, false);
 
 	m_scene->simulate(dt);
     m_scene->fetchResults(true);
