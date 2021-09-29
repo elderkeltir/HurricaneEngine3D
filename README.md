@@ -11,7 +11,7 @@ FreeBSD(see https://github.com/Esentiel/PhysX-FreeBSD for PhysX port)
 
 Supported compilers*:
 Visual C++ (2019),
-clang(11)
+clang(11+)
 
 **other compilers were not tested, try it*
 
