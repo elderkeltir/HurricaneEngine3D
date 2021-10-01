@@ -46,7 +46,6 @@ private:
 // TODO: implement iface!!
 class PHYS_EXPORTS PhysicsEngine
 {
-
 public:
 	void Init();
 	void Shutdown();
@@ -55,7 +54,6 @@ public:
 	void DestroyObject(PhysicsObject *obj);
 	void GetCharacterPos(float &x, float &y, float  &z) const;
 	void MoveCharacter(float x, float y, float z, float dt);
-
 private:
 	void CreateScene();
 	physx::PxRigidDynamic *CreateBox(const physx::PxVec3 &pos, const physx::PxVec3 &dims, const physx::PxVec3 *linVel, double density, bool kin);
