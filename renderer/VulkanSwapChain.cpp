@@ -151,7 +151,7 @@ void VulkanSwapChain::CreateSwapChain(VkSwapchainKHR oldSwapChain){
 	createInfo.pQueueFamilyIndices = &r_familyIndex;
 	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	createInfo.compositeAlpha = surfaceComposite;
-	createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // use VK_PRESENT_MODE_FIFO_KHR for production, but hey, I want to benchmark fps :^)
+	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; // use VK_PRESENT_MODE_FIFO_KHR for production, but hey, I want to benchmark fps :^)
 	if (oldSwapChain)
 		createInfo.oldSwapchain = oldSwapChain;
 
