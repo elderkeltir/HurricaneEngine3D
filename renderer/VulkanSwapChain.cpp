@@ -55,7 +55,7 @@ void VulkanSwapChain::InitializeSwapChain(bool recreate){
 	}
 
 	// depth buffer
-	m_depthBuffer = r_memoryMgr->CreateImage(m_width, m_height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_depth, VK_IMAGE_ASPECT_DEPTH_BIT, false);
+	m_depthBuffer = r_memoryMgr->AllocateImage(m_width, m_height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_depth, VK_IMAGE_ASPECT_DEPTH_BIT, false);
 	m_depthBuffer.Validate();
 
 	m_framebuffers.resize(m_imageCount);

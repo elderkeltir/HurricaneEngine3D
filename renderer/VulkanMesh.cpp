@@ -273,11 +273,6 @@ void VulkanMesh::UpdateDescriptorSets(){
 		bufferInfo.offset = m_uniformBuffers[i].offset;
 		bufferInfo.range = m_uniformBuffers[i].size;
 
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_imagePtr.imageView;
-		imageInfo.sampler = m_imagePtr.sampler;
-
 		std::vector<VkWriteDescriptorSet> descriptorWrites(1);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = m_descriptorSets[i];
@@ -290,6 +285,11 @@ void VulkanMesh::UpdateDescriptorSets(){
 		descriptorWrites[0].pTexelBufferView = nullptr;
 
 		if (m_pipelineType != iface::RenderPipelineCollection::PipelineType::PT_primitive){
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = m_imagePtr.imageView;
+			imageInfo.sampler = m_imagePtr.sampler;
+			
 			descriptorWrites.resize(2);
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[1].dstSet = m_descriptorSets[i];
@@ -322,7 +322,7 @@ void VulkanMesh::LoadTexture(VulkanMemoryManager * memoryMgr, VulkanCommandQueue
 
 	VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 
-	m_imagePtr = memoryMgr->CreateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled, VK_IMAGE_ASPECT_COLOR_BIT, true);
+	m_imagePtr = memoryMgr->AllocateImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VulkanMemoryManager::BufferUsageType::BUT_transfer_dst | VulkanMemoryManager::BufferUsageType::BUT_sampled, VK_IMAGE_ASPECT_COLOR_BIT, true);
 
 	queueDispatcher->TransitionImageLayout(m_imagePtr.imageRef, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	queueDispatcher->CopyBufferToImage(m_tsBuffPtr, m_imagePtr.imageRef, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));

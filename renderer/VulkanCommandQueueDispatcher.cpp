@@ -85,7 +85,7 @@ VulkanCommandQueueDispatcher::GQueue VulkanCommandQueueDispatcher::GetQueue(Queu
 }
 
 VkCommandBuffer VulkanCommandQueueDispatcher::GetCommandBuffer(QueueType type, uint32_t commandBufferIndex) const{
-	return m_queues[QT_graphics].commandBuffers[commandBufferIndex];
+	return m_queues[type].commandBuffers[commandBufferIndex];
 }
 
 VkSemaphore VulkanCommandQueueDispatcher::GetAquireSemaphore() const{

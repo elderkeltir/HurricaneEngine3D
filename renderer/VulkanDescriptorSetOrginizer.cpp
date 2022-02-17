@@ -27,7 +27,7 @@ const VkDescriptorPool & VulkanDescriptorSetOrginizer::GetDescriptorPool() const
 void VulkanDescriptorSetOrginizer::CreateDescriptorPool(DescriptorPoolSetup poolSetup){
     std::vector<VkDescriptorPoolSize> poolSizes(2);
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(poolSetup.unixormBufferNumber);
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(poolSetup.uniformBufferNumber);
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolSizes[1].descriptorCount = poolSetup.combinedImageSampleNumber;
 	
@@ -43,7 +43,7 @@ void VulkanDescriptorSetOrginizer::CreateDescriptorPool(DescriptorPoolSetup pool
 VulkanDescriptorSetOrginizer::DescriptorPoolSetup VulkanDescriptorSetOrginizer::SetupDescriptorPoolConfig() const{
     // predict necessary pool size here for the whole application
     DescriptorPoolSetup poolSetup;
-    poolSetup.unixormBufferNumber = 3 * DESCRIPTOR_SIZE;
+    poolSetup.uniformBufferNumber = 3 * DESCRIPTOR_SIZE;
     poolSetup.combinedImageSampleNumber = 3 * DESCRIPTOR_SIZE;
     poolSetup.maxSetNumber = 6 * DESCRIPTOR_SIZE;
 

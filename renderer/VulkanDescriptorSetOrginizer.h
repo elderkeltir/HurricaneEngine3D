@@ -10,7 +10,7 @@ public:
     const VkDescriptorPool & GetDescriptorPool() const;
 private:
     struct DescriptorPoolSetup{
-        uint32_t unixormBufferNumber;
+        uint32_t uniformBufferNumber;
         uint32_t combinedImageSampleNumber;
 
         uint32_t maxSetNumber;

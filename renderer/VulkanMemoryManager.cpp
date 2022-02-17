@@ -167,7 +167,7 @@ VulkanMemoryManager::BufferSet VulkanMemoryManager::CreateBufferSet(uint32_t buf
     return bufferSet;
 }
 
-ImagePtr VulkanMemoryManager::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage, VkImageAspectFlags aspect, bool samplerNeeded) {
+ImagePtr VulkanMemoryManager::AllocateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, uint32_t usage, VkImageAspectFlags aspect, bool samplerNeeded) {
     ImagePtr imagePtr;
     imagePtr.usageType = GetVulkanBufferUsageFlags(usage);
 
